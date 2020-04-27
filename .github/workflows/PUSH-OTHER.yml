@@ -2,18 +2,17 @@ name: Other branches
 
 on:
   push:
-    branches-ignore:
-      - master
-      - release/*
+    branches-ignore: master
 
 jobs:
-  name: Example
-  runs-on: ubuntu-latest
-  steps:
-    - name: Example
-      shell: bash
-      run: |
-        echo -e "\n[INFO] Example from ${{ github.ref }}"
+  example:
+    name: Example
+    runs-on: ubuntu-latest
+    steps:
+      - name: Example
+        shell: bash
+        run: |
+          echo -e "\n[INFO] Example from ${{ github.ref }}"
 
   pull_request:
     name: Create Pull Request
@@ -29,7 +28,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: automatic,dependency
-          template: PULL_REQUEST_TEMPLATE/DEPENDENCY.md
+          template: .github/PULL_REQUEST_TEMPLATE/DEPENDENCY.md
           old_string: "<!-- Write you description here -->"
           new_string: ${{ github.event.commits[0].message }}
           get_diff: true
@@ -41,7 +40,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: automatic,bugfix
-          template: PULL_REQUEST_TEMPLATE/BUGFIX.md
+          template: .github/PULL_REQUEST_TEMPLATE/BUGFIX.md
           old_string: "<!-- Write you description here -->"
           new_string: ${{ github.event.commits[0].message }}
           get_diff: true
@@ -53,7 +52,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: automatic,feature
-          template: PULL_REQUEST_TEMPLATE/FEATURE.md
+          template: .github/PULL_REQUEST_TEMPLATE/FEATURE.md
           old_string: "<!-- Write you description here -->"
           new_string: ${{ github.event.commits[0].message }}
           get_diff: true
@@ -65,7 +64,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: automatic,documentation
-          template: PULL_REQUEST_TEMPLATE/DOCUMENTATION.md
+          template: .github/PULL_REQUEST_TEMPLATE/DOCUMENTATION.md
           old_string: "<!-- Write you description here -->"
           new_string: ${{ github.event.commits[0].message }}
           get_diff: true
@@ -77,7 +76,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: automatic,feature
-          template: PULL_REQUEST_TEMPLATE/FEATURE.md
+          template: .github/PULL_REQUEST_TEMPLATE/FEATURE.md
           old_string: "<!-- Write you description here -->"
           new_string: ${{ github.event.commits[0].message }}
           get_diff: true

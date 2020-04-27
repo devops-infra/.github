@@ -5,10 +5,11 @@ on:
     branches: master
 
 jobs:
-  name: Example
-  runs-on: ubuntu-latest
-  steps:
-    - name: Example
-      shell: bash
-      run: |
-        echo -e "\n[INFO] Example from ${{ github.ref }}"
+  example:
+    name: Example
+    runs-on: ubuntu-latest
+    steps:
+      - name: Example
+        shell: bash
+        run: |
+          echo -e "\n[INFO] Example from ${{ github.ref }}"

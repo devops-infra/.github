@@ -1,8 +1,8 @@
-name: Master branch metadata
+name: Other metadata
 
 on:
   push:
-    branches: master
+    branches-ignore: master
 
 jobs:
   labels:
@@ -12,7 +12,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Update labels
+      - name: Update labels - dry run
         uses: crazy-max/ghaction-github-labeler@v1
+        with:
+          dry_run: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

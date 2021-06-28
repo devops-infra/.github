@@ -6,13 +6,13 @@ labels: 'bugfix'
 assignees: 'devops-infra/christophshyper'
 
 ---
-### Brief description
+## :memo:  Brief description
 
 
 <!-- Write you description here -->
 
 
-### Checklist
+## :warning: Checklist
 * [ ] Provided a clear and concise description of what the bug is.
 * [ ] Given a clear and concise description of what was expected to happen.
 * [ ] Provided an information how to reproduce the error.

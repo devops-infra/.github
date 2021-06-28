@@ -6,13 +6,13 @@ labels: 'documentation'
 assignees: 'devops-infra/christophshyper'
 
 ---
-### Brief description
+## :memo:  Brief description
 
 
 <!-- Write you description here -->
 
 
-### Checklist
+## :warning: Checklist
 * [ ] Provided a clear and concise description of what the issue is.
 * [ ] Given a clear and concise description of what is expected.
 * [ ] Added any other context or screenshots about the feature request.

@@ -1,10 +1,25 @@
-name: Other branches
+name: Push to other branches
 
 on:
   push:
-    branches-ignore: master
+    branches-ignore:
+      - master
+      - release/*
 
 jobs:
+  labels:
+    name: Update repo labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2.3.4
+
+      - name: Update labels - dry run
+        uses: crazy-max/ghaction-github-labeler@v3.1.1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          dry-run: true
+
   example:
     name: Example
     runs-on: ubuntu-latest
@@ -19,19 +34,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
-
-      - name: Create pull request - dependency (conditional)
-        if: startsWith(github.ref, 'refs/heads/dependency')
-        uses: devops-infra/action-pull-request@master
+        uses: actions/checkout@v2.3.4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          assignee: ${{ github.actor }}
-          label: automatic,dependency
-          template: .github/PULL_REQUEST_TEMPLATE/DEPENDENCY.md
-          old_string: "<!-- Write you description here -->"
-          new_string: ${{ github.event.commits[0].message }}
-          get_diff: true
+          fetch-depth: 0
 
       - name: Create pull request - bugfix (conditional)
         if: startsWith(github.ref, 'refs/heads/bugfix')
@@ -39,22 +44,18 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
-          label: automatic,bugfix
-          template: .github/PULL_REQUEST_TEMPLATE/BUGFIX.md
-          old_string: "<!-- Write you description here -->"
-          new_string: ${{ github.event.commits[0].message }}
+          label: bugfix
+          template: .github/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
-      - name: Create pull request - feature (conditional)
-        if: startsWith(github.ref, 'refs/heads/feature')
+      - name: Create pull request - dependency (conditional)
+        if: startsWith(github.ref, 'refs/heads/dependency')
         uses: devops-infra/action-pull-request@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
-          label: automatic,feature
-          template: .github/PULL_REQUEST_TEMPLATE/FEATURE.md
-          old_string: "<!-- Write you description here -->"
-          new_string: ${{ github.event.commits[0].message }}
+          label: dependency
+          template: .github/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
       - name: Create pull request - documentation (conditional)
@@ -63,20 +64,38 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
-          label: automatic,documentation
-          template: .github/PULL_REQUEST_TEMPLATE/DOCUMENTATION.md
-          old_string: "<!-- Write you description here -->"
-          new_string: ${{ github.event.commits[0].message }}
+          label: documentation
+          template: .github/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
-      - name: Create pull request - other (conditional)
-        if: startsWith(github.ref, '!refs/heads/dependency') && startsWith(github.ref, '!refs/heads/bugfix') && startsWith(github.ref, '!refs/heads/feature') && startsWith(github.ref, '!refs/heads/documentation')
+      - name: Create pull request - feature (conditional)
+        if: startsWith(github.ref, 'refs/heads/feature')
         uses: devops-infra/action-pull-request@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
-          label: automatic,feature
-          template: .github/PULL_REQUEST_TEMPLATE/FEATURE.md
-          old_string: "<!-- Write you description here -->"
-          new_string: ${{ github.event.commits[0].message }}
+          label: feature
+          template: .github/PULL_REQUEST_TEMPLATE.md
+          get_diff: true
+
+      - name: Create pull request - test (conditional)
+        if: startsWith(github.ref, 'refs/heads/test')
+        uses: devops-infra/action-pull-request@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          assignee: ${{ github.actor }}
+          reviewer: ${{ github.actor }}
+          label: test
+          template: .github/PULL_REQUEST_TEMPLATE.md
+          draft: true
+          get_diff: true
+
+      - name: Create pull request - other (conditional)
+        if: "!startsWith(github.ref, 'refs/heads/bugfix') && !startsWith(github.ref, 'refs/heads/dependabot') && !startsWith(github.ref, 'refs/heads/dependency') && !startsWith(github.ref, 'refs/heads/documentation')  && !startsWith(github.ref, 'refs/heads/feature') && !startsWith(github.ref, 'refs/heads/test')"
+        uses: devops-infra/action-pull-request@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          assignee: ${{ github.actor }}
+          label: feature
+          template: .github/PULL_REQUEST_TEMPLATE.md
           get_diff: true

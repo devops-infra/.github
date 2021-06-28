@@ -6,13 +6,13 @@ labels: 'feature'
 assignees: 'devops-infra/christophshyper'
 
 ---
-### Brief description
+## :memo:  Brief description
 
 
 <!-- Write you description here -->
 
 
-### Checklist
+## :warning: Checklist
 * [ ] Provided a clear and concise description of what the issue is.
 * [ ] Given a clear and concise description of what is expected.
 * [ ] Proposed a clear and concise description of any alternative solutions or other features.

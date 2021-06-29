@@ -14,10 +14,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2.3.4
 
+      - name: Download labels' config
+        shell: bash
+        run: |
+          mkdir -p .tmp
+          curl -LsS https://raw.githubusercontent.com/devops-infra/.github/master/.github/labels.yml -o .tmp/labels.yml
+
       - name: Update labels - dry run
         uses: crazy-max/ghaction-github-labeler@v3.1.1
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .tmp/labels.yml
           dry-run: true
 
   example:
@@ -38,6 +45,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download Pull Request template
+        shell: bash
+        run: |
+          mkdir -p .tmp
+          curl -LsS https://raw.githubusercontent.com/devops-infra/.github/master/PULL_REQUEST_TEMPLATE.md -o .tmp/PULL_REQUEST_TEMPLATE.md
+
       - name: Create pull request - bugfix (conditional)
         if: startsWith(github.ref, 'refs/heads/bugfix')
         uses: devops-infra/action-pull-request@master
@@ -45,7 +58,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: bugfix
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
       - name: Create pull request - dependency (conditional)
@@ -55,7 +68,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: dependency
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
       - name: Create pull request - documentation (conditional)
@@ -65,7 +78,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: documentation
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
       - name: Create pull request - feature (conditional)
@@ -75,7 +88,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: feature
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true
 
       - name: Create pull request - test (conditional)
@@ -86,7 +99,7 @@ jobs:
           assignee: ${{ github.actor }}
           reviewer: ${{ github.actor }}
           label: test
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           draft: true
           get_diff: true
 
@@ -97,5 +110,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           assignee: ${{ github.actor }}
           label: feature
-          template: .github/PULL_REQUEST_TEMPLATE.md
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true

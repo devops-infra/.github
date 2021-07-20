@@ -21,5 +21,7 @@
 * [ ] Provided a clear and concise description of what the issue is.
 
 
-*Check [CONTRIBUTING.md](https://github.com/devops-infra/.github/blob/master/CONTRIBUTING.md) and
-[CODE_OF_CONDUCT.md](https://github.com/devops-infra/.github/blob/master/CODE_OF_CONDUCT.md) for more information*
+*Check [CONTRIBUTING.md][contributing] and [CODE_OF_CONDUCT.md][code] for more information*
+
+[contributing]: https://github.com/devops-infra/.github/blob/master/CONTRIBUTING.md
+[code]: https://github.com/devops-infra/.github/blob/master/CODE_OF_CONDUCT.md

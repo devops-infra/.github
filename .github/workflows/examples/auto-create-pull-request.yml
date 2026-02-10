@@ -1,0 +1,25 @@
+name: (Auto) Create Pull Request
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - dependabot/**
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+jobs:
+  call-auto-create-pull-request:
+    uses: devops-infra/.github/.github/workflows/auto-create-pull-request.yml@master
+    with:
+      runs-on: ubuntu-24.04-arm
+      task-version: 3.x
+      enable-docker: true
+      enable-lint: true
+      docker-platforms: amd64,arm64
+    secrets:
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

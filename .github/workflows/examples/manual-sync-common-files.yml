@@ -1,0 +1,29 @@
+name: (Manual) Sync Common Files
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: File type to sync
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - configs
+          - ignores
+          - taskfiles
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  call-sync-files:
+    uses: devops-infra/.github/.github/workflows/manual-sync-common-files.yml@master
+    with:
+      runs-on: ubuntu-24.04-arm
+      task-version: 3.x
+      sync-type: ${{ github.event.inputs.type }}
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

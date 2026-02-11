@@ -4,7 +4,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-EXAMPLES_DIR="$SCRIPT_DIR/examples"
+EXAMPLES_DIR="$(cd "$SCRIPT_DIR" && pwd)"
 
 # Color output
 RED='\033[0;31m'

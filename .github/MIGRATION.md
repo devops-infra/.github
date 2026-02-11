@@ -6,28 +6,28 @@ This setup establishes the `.github` repository as a centralized meta repository
 
 ## What Was Created
 
-### 1. Reusable Workflows (`.github/workflows/reusable/`)
+### 1. Reusable Workflows (`templates/actions/workflows/`)
 
 Five centralized workflows:
 
 | Workflow                                | Purpose                                 | Replaces                       |
 |-----------------------------------------|-----------------------------------------|--------------------------------|
-| `reusable/auto-create-pull-request.yml` | Auto-create PRs for feature branches    | `auto-create-pull-request.yml` |
-| `reusable/auto-create-release.yml`      | Create releases from merged PRs         | `auto-create-release.yml`      |
-| `reusable/cron-check-dependencies.yml`  | Scheduled dependency testing            | `cron-check-dependencies.yml`  |
-| `reusable/manual-update-version.yml`    | Manual version bumps                    | `manual-update-version.yml`    |
-| `reusable/manual-sync-common-files.yml` | Sync common files from template sources | `manual-sync-common-files.yml` |
+| `templates/actions/workflows/auto-create-pull-request.yml` | Auto-create PRs for feature branches    | `auto-create-pull-request.yml` |
+| `templates/actions/workflows/auto-create-release.yml`      | Create releases from merged PRs         | `auto-create-release.yml`      |
+| `templates/actions/workflows/cron-check-dependencies.yml`  | Scheduled dependency testing            | `cron-check-dependencies.yml`  |
+| `templates/actions/workflows/manual-update-version.yml`    | Manual version bumps                    | `manual-update-version.yml`    |
+| `templates/actions/workflows/manual-sync-common-files.yml` | Sync common files from template sources | `manual-sync-common-files.yml` |
 
-### 2. Example Caller Workflows (`.github/workflows/examples/`)
+### 2. Example Caller Workflows (`.github/.github/workflows/`)
 
-Ready-to-use examples showing how repositories call the centralized workflows:
+Ready-to-use caller workflows showing how repositories call the centralized workflows:
 - `auto-create-pull-request.yml`
 - `auto-create-release.yml`
 - `cron-check-dependencies.yml`
 - `manual-update-version.yml`
 - `manual-sync-common-files.yml`
 
-### 3. Reusable Taskfiles (`.github/taskfiles/`)
+### 3. Reusable Taskfiles (`templates/actions/taskfiles/`)
 
 Shared Taskfile templates used by the sync-files workflow:
 - `Taskfile.yml`
@@ -35,7 +35,7 @@ Shared Taskfile templates used by the sync-files workflow:
 - `Taskfile.docker.yml`
 - `Taskfile.variables.yml`
 
-### 4. Reusable Configs (`.github/configs/`)
+### 4. Reusable Configs (`templates/actions/configs/`)
 
 Shared config files synced by `sync:configs` and `sync:ignores`:
 - `.editorconfig`
@@ -66,12 +66,11 @@ Shared config files synced by `sync:configs` and `sync:ignores`:
 ```bash
 cd /Users/christoph/IdeaProjects/devops-infra/.github
 git add .github/workflows/*.yml
-git add .github/workflows/reusable/*.yml
-git add .github/workflows/examples/
+git add templates/actions/workflows/*.yml
 git add .github/workflows/README.md
 git add .github/workflows/migrate-to-reusable.sh
-git add .github/configs/
-git add .github/taskfiles/
+git add templates/actions/configs/
+git add templates/actions/taskfiles/
 git add copilot-instructions.md
 git commit -m "feat: Add centralized workflows for organization"
 git push origin master
@@ -92,8 +91,8 @@ Choose one of these approaches:
    # Backup existing workflows
    cp -r .github/workflows .github/workflows.backup
    
-   # Copy examples
-   cp ../. github/.github/workflows/examples/*.yml .github/workflows/
+   # Copy caller workflows
+   cp ../.github/.github/workflows/{auto-create-pull-request.yml,auto-create-release.yml,cron-check-dependencies.yml,manual-update-version.yml,manual-sync-common-files.yml} .github/workflows/
    ```
 
 3. **Remove old workflows:**
@@ -177,7 +176,7 @@ rm -rf .github/workflows.backup*
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
     with:
       enable-docker: false
       enable-lint: true
@@ -187,7 +186,7 @@ jobs:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-latest
 ```
@@ -196,7 +195,7 @@ jobs:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
     with:
       docker-platforms: amd64
 ```
@@ -213,7 +212,7 @@ If issues occur:
 
 1. **Version tagging:** Pin workflows to tags instead of `@master` for stability
    ```yaml
-   uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@v1.0.0
+   uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1.0.0
    ```
 
 2. **Python-specific workflow:** Create centralized workflow for `velez` and similar Python projects

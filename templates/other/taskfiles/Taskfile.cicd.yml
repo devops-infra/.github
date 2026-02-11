@@ -22,7 +22,6 @@ tasks:
     desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
     cmds:
       - task: lint:actionlint
-      - task: lint:hadolint
       - task: lint:shellcheck
       - task: lint:yamllint
 
@@ -39,22 +38,6 @@ tasks:
           echo "✅ actionlint passed"
         else
           echo "❌ actionlint failed"
-          exit $rc
-        fi
-
-  lint:hadolint:
-    desc: Lint Dockerfile with hadolint
-    cmds:
-      - |
-        echo "▶️ Running hadolint..."
-        set +e
-        docker run --rm -i -v "$PWD:/work" -w /work hadolint/hadolint:latest-debian < Dockerfile
-        rc=$?
-        set -e
-        if [ "$rc" -eq 0 ]; then
-          echo "✅ hadolint passed"
-        else
-          echo "❌ hadolint failed"
           exit $rc
         fi
 
@@ -252,6 +235,7 @@ tasks:
         echo "▶️ Syncing Taskfiles from devops-infra/.github..."
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.yml -o ./Taskfile.yml
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.cicd.yml -o ./Taskfile.cicd.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.docker.yml -o ./Taskfile.docker.yml
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.variables.yml -o ./Taskfile.variables.yml
         git add Taskfile*.yml
         echo "✅ Synced Taskfiles"

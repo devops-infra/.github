@@ -1,10 +1,10 @@
 # Centralized Workflows for devops-infra Organization
 
-This directory contains centralized workflows that can be called from any repository in the devops-infra organization. Reusable workflows live under `reusable/`, while top-level workflows are normal callers for the `.github` repository itself.
+This directory contains centralized workflows that can be called from any repository in the devops-infra organization. Reusable workflows live under `templates/actions/workflows/`, while top-level workflows are normal callers for the `.github` repository itself.
 
 ## Available Reusable Workflows
 
-### 1. `reusable/auto-create-pull-request.yml`
+### 1. `templates/actions/workflows/auto-create-pull-request.yml`
 **Purpose:** Automates pull request creation for feature branches  
 **Triggers:** Push to non-master branches  
 **Steps:**
@@ -24,7 +24,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 2. `reusable/auto-create-release.yml`
+### 2. `templates/actions/workflows/auto-create-release.yml`
 **Purpose:** Creates releases when release branches are merged  
 **Triggers:** PR merge from `release/**` branches  
 **Steps:**
@@ -46,7 +46,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 3. `reusable/cron-check-dependencies.yml`
+### 3. `templates/actions/workflows/cron-check-dependencies.yml`
 **Purpose:** Scheduled dependency testing  
 **Triggers:** Cron schedule (e.g., weekly)  
 **Steps:**
@@ -63,7 +63,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 4. `reusable/manual-update-version.yml`
+### 4. `templates/actions/workflows/manual-update-version.yml`
 **Purpose:** Manual version bump workflow  
 **Triggers:** Manual workflow dispatch  
 **Steps:**
@@ -83,13 +83,13 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 5. `reusable/manual-sync-common-files.yml`
+### 5. `templates/actions/workflows/manual-sync-common-files.yml`
 **Purpose:** Sync common files from template sources  
 **Triggers:** Manual workflow dispatch  
 **Steps:**
 - Syncs specified file types (configs, ignores, taskfiles)
-- Taskfiles are sourced from `devops-infra/.github/.github/taskfiles`
-- Configs/ignores are sourced from `devops-infra/.github/.github/configs`
+- Taskfiles are sourced from `devops-infra/.github/templates/actions/taskfiles`
+- Configs/ignores are sourced from `devops-infra/.github/templates/actions/configs`
 - Creates branch with changes
 - Creates pull request
 
@@ -104,7 +104,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ## Usage in Individual Repositories
 
-To use these workflows in your repository, create minimal caller workflows in `.github/workflows/` that reference the reusable ones under `reusable/`.
+To use these workflows in your repository, create minimal caller workflows in `.github/workflows/` that reference the reusable ones under `templates/actions/workflows/`.
 
 Archived repositories (e.g., `docker-okta-aws-sso`) are excluded from syncing and automation.
 
@@ -126,7 +126,7 @@ permissions:
 
 jobs:
   call-auto-create-pull-request:
-    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       enable-docker: true
@@ -135,7 +135,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-See the [`examples/`](./examples/) directory for complete examples of all workflows.
+Caller workflow examples live in this directory (`.github/.github/workflows/*.yml`). Reusable definitions live in [`templates/actions/workflows/`](../../templates/actions/workflows/).
 
 ---
 
@@ -153,7 +153,7 @@ For each repository (e.g., `action-commit-push`, `docker-terragrunt`):
    ```
 
 2. **Replace workflows with callers**
-   - Copy examples from `.github/.github/workflows/examples/`
+   - Copy examples from `templates/actions/workflows/`
    - Adjust inputs if needed (e.g., disable Docker for non-Docker repos)
    - Commit and push
 
@@ -190,7 +190,7 @@ All repositories must have:
 
 ### "Workflow not found" errors
 - Ensure reusable workflows are pushed to the `master` branch of `devops-infra/.github`
-- Verify the path: `devops-infra/.github/.github/workflows/reusable/<workflow>.yml@master`
+- Verify the path: `devops-infra/.github/templates/actions/workflows/<workflow>.yml@master`
 
 ### Permission errors
 - Ensure caller workflow has required `permissions` section
@@ -206,7 +206,7 @@ All repositories must have:
 
 When you need to update workflow logic:
 
-1. Edit the reusable workflow in `.github/.github/workflows/reusable/`
+1. Edit the reusable workflow in `templates/actions/workflows/`
 2. Commit and push to `.github` repository
 3. Changes automatically apply to all repositories using it
 4. No need to update individual repositories (unless changing inputs)

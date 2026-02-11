@@ -35,7 +35,7 @@ jobs:
       - name: Sync files and get PR template
         id: version
         env:
-          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/.github/taskfiles
+          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/actions/taskfiles
         run: |
           set -eux
           case "${{ inputs.sync-type }}" in

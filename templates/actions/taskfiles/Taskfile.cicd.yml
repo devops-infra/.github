@@ -4,8 +4,8 @@ silent: true
 
 vars:
   PR_TEMPLATE: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/PULL_REQUEST_TEMPLATE.md
-  COMMON_FILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/.github/configs
-  TASKFILES_REPO_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/.github/taskfiles
+  CONFIGS_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/actions/configs
+  TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/actions/taskfiles
 
 tasks:
   pre-commit:
@@ -227,11 +227,11 @@ tasks:
     cmds:
       - |
         echo "▶️ Syncing configuration files from devops-infra/.github..."
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.editorconfig -o ./.editorconfig
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.hadolint.yaml -o ./.hadolint.yaml
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.pre-commit-config.yaml -o ./.pre-commit-config.yaml
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.shellcheckrc -o ./.shellcheckrc
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.yamllint.yml -o ./.yamllint.yml
+        curl -sL {{.CONFIGS_BASE_URL}}/.editorconfig -o ./.editorconfig
+        curl -sL {{.CONFIGS_BASE_URL}}/.hadolint.yaml -o ./.hadolint.yaml
+        curl -sL {{.CONFIGS_BASE_URL}}/.pre-commit-config.yaml -o ./.pre-commit-config.yaml
+        curl -sL {{.CONFIGS_BASE_URL}}/.shellcheckrc -o ./.shellcheckrc
+        curl -sL {{.CONFIGS_BASE_URL}}/.yamllint.yml -o ./.yamllint.yml
         git add .editorconfig .hadolint.yaml .pre-commit-config.yaml .shellcheckrc .yamllint.yml
         echo "✅ Synced configuration files"
 
@@ -240,8 +240,8 @@ tasks:
     cmds:
       - |
         echo "▶️ Syncing ignore files from devops-infra/.github..."
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.gitignore -o ./.gitignore
-        curl -sL {{.COMMON_FILES_BASE_URL}}/.dockerignore -o ./.dockerignore
+        curl -sL {{.CONFIGS_BASE_URL}}/.gitignore -o ./.gitignore
+        curl -sL {{.CONFIGS_BASE_URL}}/.dockerignore -o ./.dockerignore
         git add .gitignore .dockerignore
         echo "✅ Synced ignore files"
 
@@ -250,9 +250,9 @@ tasks:
     cmds:
       - |
         echo "▶️ Syncing Taskfiles from devops-infra/.github..."
-        curl -sL {{.TASKFILES_REPO_BASE_URL}}/Taskfile.yml -o ./Taskfile.yml
-        curl -sL {{.TASKFILES_REPO_BASE_URL}}/Taskfile.cicd.yml -o ./Taskfile.cicd.yml
-        curl -sL {{.TASKFILES_REPO_BASE_URL}}/Taskfile.docker.yml -o ./Taskfile.docker.yml
-        curl -sL {{.TASKFILES_REPO_BASE_URL}}/Taskfile.variables.yml -o ./Taskfile.variables.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.yml -o ./Taskfile.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.cicd.yml -o ./Taskfile.cicd.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.docker.yml -o ./Taskfile.docker.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.variables.yml -o ./Taskfile.variables.yml
         git add Taskfile*.yml
         echo "✅ Synced Taskfiles"

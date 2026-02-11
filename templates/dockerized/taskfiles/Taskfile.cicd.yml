@@ -4,8 +4,8 @@ silent: true
 
 vars:
   PR_TEMPLATE: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/PULL_REQUEST_TEMPLATE.md
-  CONFIGS_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/other/configs
-  TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/other/taskfiles
+  CONFIGS_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/dockerized/configs
+  TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/dockerized/taskfiles
 
 tasks:
   pre-commit:
@@ -252,6 +252,7 @@ tasks:
         echo "▶️ Syncing Taskfiles from devops-infra/.github..."
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.yml -o ./Taskfile.yml
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.cicd.yml -o ./Taskfile.cicd.yml
+        curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.docker.yml -o ./Taskfile.docker.yml
         curl -sL {{.TASKFILES_BASE_URL}}/Taskfile.variables.yml -o ./Taskfile.variables.yml
         git add Taskfile*.yml
         echo "✅ Synced Taskfiles"

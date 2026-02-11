@@ -1,0 +1,7 @@
+# Exclude
+*
+
+# Include
+!Dockerfile
+!LICENSE
+!README.md

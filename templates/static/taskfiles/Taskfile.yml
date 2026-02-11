@@ -1,0 +1,21 @@
+version: '3'
+
+silent: true
+
+tasks:
+  default:
+    desc: List tasks
+    cmds:
+      - task help
+
+  help:
+    desc: Detailed help
+    cmds:
+      - |
+        echo "Tasks:"
+        task --list
+
+  serve:
+    desc: Serve the site locally on http://localhost:8000
+    cmds:
+      - python3 -m http.server 8000 --directory site

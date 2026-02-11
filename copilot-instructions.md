@@ -83,12 +83,12 @@ rm -rf dist build *.egg-info
 The `.github` repository serves as a **meta repository** containing centralized workflows for the entire organization:
 
 ### Available Reusable Workflows
-Located in `.github/.github/workflows/reusable/`:
+Located in `templates/actions/workflows/`:
 - `auto-create-pull-request.yml` - Auto-create PRs for feature branches
 - `auto-create-release.yml` - Create releases from `release/**` branches
 - `cron-check-dependencies.yml` - Scheduled dependency testing
 - `manual-update-version.yml` - Manual version bumps
-- `manual-sync-common-files.yml` - Sync common files from `.github` (taskfiles: `.github/.github/taskfiles`, configs: `.github/.github/configs`)
+- `manual-sync-common-files.yml` - Sync common files from `.github` (taskfiles: `templates/actions/taskfiles`, configs: `templates/actions/configs`)
 
 ### Using Reusable Workflows
 Individual repositories call these workflows instead of duplicating logic:
@@ -96,7 +96,7 @@ Individual repositories call these workflows instead of duplicating logic:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       enable-docker: true
@@ -105,7 +105,7 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-See `.github/.github/workflows/examples/` for complete examples and `.github/.github/workflows/README.md` for detailed documentation.
+See `.github/.github/workflows/` for caller examples and `.github/.github/workflows/README.md` for detailed documentation.
 
 ### Workflow Requirements
 All repositories using these workflows must have:
@@ -143,25 +143,20 @@ Per `.github/CONTRIBUTING.md`:
 - Entry scripts are bash with `set -e` and comprehensive error handling
 
 ### Taskfile.yml (Task Runner)
-Repositories use [Task](https://taskfile.dev) for build automation. Common task structure:
-```yaml
-version: '3'
-includes:
-  docker: ./Taskfile.docker.yml
-  cicd: ./Taskfile.cicd.yml
-tasks:
-  lint: # Run linters
-  docker:cmds: # Display Docker build info
-  docker:push: # Build and push image
-  docker:push:inspect: # Inspect built image
-  git:get-pr-template: # Fetch PR template
-  git:set-config: # Configure git
-  version:get: # Get current version
-  version:update:patch: # Bump patch version
-  version:update:minor: # Bump minor version
-  version:update:major: # Bump major version
-  version:tag-release: # Tag release
-```
+Repositories use [Task](https://taskfile.dev) for build automation. Templates are split by category in `templates/`:
+
+- **actions/**: `Taskfile.yml`, `Taskfile.cicd.yml`, `Taskfile.docker.yml`, `Taskfile.variables.yml` (for action-* repos and template-action)
+- **dockerized/**: `Taskfile.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for docker-terragrunt-style repos)
+- **static/**: `Taskfile.yml` (for GitHub Pages/static sites)
+- **other/**: `Taskfile.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for non-Docker repos)
+
+Common tasks include:
+- `lint` (actionlint/yamllint and hadolint/shellcheck where applicable)
+- `git:get-pr-template`, `git:set-config`
+- Docker tasks (`docker:*`) only in the actions template
+- Version tasks (`version:*`) only in the actions template
+
+The `.github` meta repository uses `templates/other` as the default sync source for configs and taskfiles.
 
 ### Multi-Arch Images
 `docker-terragrunt` supports both `amd64` and `arm64` architectures. Version tags include dependency versions (e.g., `tf-1.13.4-tg-0.93.0`).

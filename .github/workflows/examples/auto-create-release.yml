@@ -14,7 +14,7 @@ permissions:
 jobs:
   call-auto-create-release:
     if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
-    uses: devops-infra/.github/.github/workflows/auto-create-release.yml@master
+    uses: devops-infra/.github/.github/workflows/reusable/auto-create-release.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
@@ -23,5 +23,4 @@ jobs:
       update-dockerhub-description: true
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}

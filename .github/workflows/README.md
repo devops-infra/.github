@@ -1,10 +1,10 @@
 # Centralized Workflows for devops-infra Organization
 
-This directory contains centralized workflows that can be called from any repository in the devops-infra organization. This eliminates workflow duplication and simplifies maintenance.
+This directory contains centralized workflows that can be called from any repository in the devops-infra organization. Reusable workflows live under `reusable/`, while top-level workflows are normal callers for the `.github` repository itself.
 
-## Available Workflows
+## Available Reusable Workflows
 
-### 1. `auto-create-pull-request.yml`
+### 1. `reusable/auto-create-pull-request.yml`
 **Purpose:** Automates pull request creation for feature branches  
 **Triggers:** Push to non-master branches  
 **Steps:**
@@ -24,7 +24,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 2. `auto-create-release.yml`
+### 2. `reusable/auto-create-release.yml`
 **Purpose:** Creates releases when release branches are merged  
 **Triggers:** PR merge from `release/**` branches  
 **Steps:**
@@ -46,7 +46,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 3. `cron-check-dependencies.yml`
+### 3. `reusable/cron-check-dependencies.yml`
 **Purpose:** Scheduled dependency testing  
 **Triggers:** Cron schedule (e.g., weekly)  
 **Steps:**
@@ -63,7 +63,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 4. `manual-update-version.yml`
+### 4. `reusable/manual-update-version.yml`
 **Purpose:** Manual version bump workflow  
 **Triggers:** Manual workflow dispatch  
 **Steps:**
@@ -83,7 +83,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ---
 
-### 5. `manual-sync-common-files.yml`
+### 5. `reusable/manual-sync-common-files.yml`
 **Purpose:** Sync common files from template sources  
 **Triggers:** Manual workflow dispatch  
 **Steps:**
@@ -104,7 +104,7 @@ This directory contains centralized workflows that can be called from any reposi
 
 ## Usage in Individual Repositories
 
-To use these workflows in your repository, create minimal caller workflows in `.github/workflows/`.
+To use these workflows in your repository, create minimal caller workflows in `.github/workflows/` that reference the reusable ones under `reusable/`.
 
 Archived repositories (e.g., `docker-okta-aws-sso`) are excluded from syncing and automation.
 
@@ -126,7 +126,7 @@ permissions:
 
 jobs:
   call-auto-create-pull-request:
-    uses: devops-infra/.github/.github/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       enable-docker: true
@@ -189,8 +189,8 @@ All repositories must have:
 ## Troubleshooting
 
 ### "Workflow not found" errors
-- Ensure workflows are pushed to the `master` branch of `devops-infra/.github`
-- Verify the path: `devops-infra/.github/.github/workflows/<workflow>.yml@master`
+- Ensure reusable workflows are pushed to the `master` branch of `devops-infra/.github`
+- Verify the path: `devops-infra/.github/.github/workflows/reusable/<workflow>.yml@master`
 
 ### Permission errors
 - Ensure caller workflow has required `permissions` section
@@ -206,7 +206,7 @@ All repositories must have:
 
 When you need to update workflow logic:
 
-1. Edit the centralized workflow in `.github/.github/workflows/`
+1. Edit the reusable workflow in `.github/.github/workflows/reusable/`
 2. Commit and push to `.github` repository
 3. Changes automatically apply to all repositories using it
 4. No need to update individual repositories (unless changing inputs)

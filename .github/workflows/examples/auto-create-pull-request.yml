@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   call-auto-create-pull-request:
-    uses: devops-infra/.github/.github/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
@@ -22,4 +22,3 @@ jobs:
       docker-platforms: amd64,arm64
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

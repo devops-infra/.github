@@ -83,7 +83,7 @@ rm -rf dist build *.egg-info
 The `.github` repository serves as a **meta repository** containing centralized workflows for the entire organization:
 
 ### Available Reusable Workflows
-Located in `.github/.github/workflows/`:
+Located in `.github/.github/workflows/reusable/`:
 - `auto-create-pull-request.yml` - Auto-create PRs for feature branches
 - `auto-create-release.yml` - Create releases from `release/**` branches
 - `cron-check-dependencies.yml` - Scheduled dependency testing
@@ -96,7 +96,7 @@ Individual repositories call these workflows instead of duplicating logic:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/.github/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/.github/workflows/reusable/auto-create-pull-request.yml@master
     with:
       runs-on: ubuntu-24.04-arm
       enable-docker: true

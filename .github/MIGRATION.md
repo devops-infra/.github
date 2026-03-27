@@ -32,7 +32,6 @@ Static repositories may additionally use:
 
 Ready-to-use caller workflows showing how repositories call the centralized workflows:
 - `auto-create-pull-request.yml`
-- `auto-create-release.yml`
 - `cron-check-dependencies.yml`
 - `manual-update-version.yml`
 - `manual-sync-common-files.yml`

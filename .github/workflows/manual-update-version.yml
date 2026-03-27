@@ -37,4 +37,6 @@ jobs:
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
       build-and-push-only: ${{ inputs.build_only }}
+      enable-docker: false
+      profile: other
       docker-platforms: amd64,arm64

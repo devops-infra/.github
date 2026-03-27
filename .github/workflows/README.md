@@ -37,7 +37,7 @@ Example:
 ```yaml
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-auto-create-pull-request.yml@v1
+    uses: devops-infra/.github/.github/workflows/reusable-auto-create-pull-request.yml@v1
 ```
 
 ## Weekly health workflow behavior

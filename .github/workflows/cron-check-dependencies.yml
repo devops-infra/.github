@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   call-weekly-health-check:
-    uses: ./.github/workflows/reusable-actions-cron-check-dependencies.yml
+    uses: ./.github/workflows/reusable-cron-check-dependencies.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x

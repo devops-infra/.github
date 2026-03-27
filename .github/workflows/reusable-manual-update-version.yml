@@ -1,4 +1,4 @@
-name: (Reusable Actions) Manual Update Version
+name: (Reusable - Manual) Update Version
 
 on:
   workflow_call:

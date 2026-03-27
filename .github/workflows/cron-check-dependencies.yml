@@ -2,7 +2,7 @@ name: (Cron) Weekly repository health
 
 on:
   schedule:
-    - cron: '17 4 * * 1'
+    - cron: '0 5 * * 1'
   workflow_dispatch:
 
 permissions:

@@ -55,7 +55,7 @@ jobs:
           fetch-tags: true
 
       - name: Install Task
-        uses: arduino/setup-task@v2.0.0
+        uses: arduino/setup-task@v2
         with:
           version: ${{ inputs.task-version }}
 

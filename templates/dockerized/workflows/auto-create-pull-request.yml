@@ -25,8 +25,8 @@ jobs:
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      enable-docker: true
       enable-lint: true
+      profile: dockerized
       docker-platforms: ${{ inputs.docker-platforms }}
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

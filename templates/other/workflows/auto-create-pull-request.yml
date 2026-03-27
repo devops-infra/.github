@@ -18,5 +18,5 @@ jobs:
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      enable-docker: false
       enable-lint: true
+      profile: other

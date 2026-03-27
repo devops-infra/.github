@@ -24,10 +24,6 @@ on:
         description: Skip version update and only build/push artifacts
         type: boolean
         default: false
-      enable-docker:
-        description: Enable docker build/push in build-only mode
-        type: boolean
-        default: true
       profile:
         description: Repository profile (actions, dockerized, other, static)
         type: string
@@ -151,18 +147,18 @@ jobs:
         run: echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 
       - name: Install Docker Buildx
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
         uses: docker/setup-buildx-action@v4
 
       - name: Install QEMU
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
         uses: docker/setup-qemu-action@v4
         with:
           image: tonistiigi/binfmt:latest
           platforms: ${{ inputs.docker-platforms }}
 
       - name: Build and push artifacts only
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -173,7 +169,7 @@ jobs:
           task docker:push:inspect
 
       - name: Build-only mode without docker
-        if: ${{ inputs.build-and-push-only && !inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}
         run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
       - name: Get template

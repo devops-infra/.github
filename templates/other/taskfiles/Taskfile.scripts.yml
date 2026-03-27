@@ -31,6 +31,10 @@ tasks:
     cmds:
       - |
         echo "▶️ Running hadolint..."
+        if [ ! -f Dockerfile ]; then
+          echo "ℹ️ No Dockerfile found, skipping hadolint"
+          exit 0
+        fi
         set +e
         docker run --rm -i -v "$PWD:/work" -w /work hadolint/hadolint:latest-debian < Dockerfile
         rc=$?
@@ -47,8 +51,13 @@ tasks:
     cmds:
       - |
         echo "▶️ Running shellcheck..."
+        files=$(git ls-files '*.sh')
+        if [ -z "$files" ]; then
+          echo "ℹ️ No shell scripts found, skipping shellcheck"
+          exit 0
+        fi
         set +e
-        docker run --rm -i -v "$PWD:/work" -w /work koalaman/shellcheck:stable -x -S style entrypoint.sh
+        docker run --rm -i -v "$PWD:/work" -w /work koalaman/shellcheck:stable -x -S style $files
         rc=$?
         set -e
         if [ "$rc" -eq 0 ]; then
@@ -187,4 +196,3 @@ tasks:
             echo "ℹ️ INFO: Major tag '$MAJOR' already up-to-date"
           fi
         fi
-

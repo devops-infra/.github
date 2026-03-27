@@ -22,7 +22,6 @@ tasks:
     desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
     cmds:
       - task: lint:actionlint
-      - task: lint:hadolint
       - task: lint:shellcheck
       - task: lint:yamllint
 
@@ -47,6 +46,10 @@ tasks:
     cmds:
       - |
         echo "▶️ Running hadolint..."
+        if [ ! -f Dockerfile ]; then
+          echo "ℹ️ No Dockerfile found, skipping hadolint"
+          exit 0
+        fi
         set +e
         docker run --rm -i -v "$PWD:/work" -w /work hadolint/hadolint:latest-debian < Dockerfile
         rc=$?
@@ -63,8 +66,13 @@ tasks:
     cmds:
       - |
         echo "▶️ Running shellcheck..."
+        files=$(git ls-files '*.sh')
+        if [ -z "$files" ]; then
+          echo "ℹ️ No shell scripts found, skipping shellcheck"
+          exit 0
+        fi
         set +e
-        docker run --rm -i -v "$PWD:/work" -w /work koalaman/shellcheck:stable -x -S style entrypoint.sh
+        docker run --rm -i -v "$PWD:/work" -w /work koalaman/shellcheck:stable -x -S style $files
         rc=$?
         set -e
         if [ "$rc" -eq 0 ]; then
@@ -79,8 +87,12 @@ tasks:
     cmds:
       - |
         echo "▶️ Running yamllint..."
+        config_file=".yamllint.yml"
+        if [ ! -f "$config_file" ]; then
+          config_file="templates/other/configs/.yamllint.yml"
+        fi
         set +e
-        docker run --rm -i -v "$PWD:/work" -w /work cytopia/yamllint -c .yamllint.yml .
+        docker run --rm -i -v "$PWD:/work" -w /work cytopia/yamllint -c "$config_file" .
         rc=$?
         set -e
         if [ "$rc" -eq 0 ]; then

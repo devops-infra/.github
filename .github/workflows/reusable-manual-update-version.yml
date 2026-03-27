@@ -24,6 +24,10 @@ on:
         description: Skip version update and only build/push artifacts
         type: boolean
         default: false
+      publish-release:
+        description: Create release tags and publish GitHub release instead of opening PR
+        type: boolean
+        default: false
       profile:
         description: Repository profile (actions, dockerized, other, static)
         type: string
@@ -191,7 +195,7 @@ jobs:
         run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
       - name: Get template
-        if: ${{ !inputs.build-and-push-only }}
+        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
         env:
           VERSION_SUFFIX: ""
         run: |
@@ -199,7 +203,7 @@ jobs:
           task git:get-pr-template
 
       - name: Push to release branch
-        if: ${{ !inputs.build-and-push-only }}
+        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
         uses: devops-infra/action-commit-push@v1
         with:
           github_token: ${{ github.token }}
@@ -207,13 +211,44 @@ jobs:
           target_branch: ${{ format('release/{0}', steps.version.outputs.REL_VERSION) }}
 
       - name: Create Pull Request
-        if: ${{ !inputs.build-and-push-only }}
+        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
         uses: devops-infra/action-pull-request@v1
         with:
           github_token: ${{ github.token }}
           assignee: ${{ github.actor }}
           template: .tmp/PULL_REQUEST_TEMPLATE.md
           get_diff: true
+
+      - name: Create and push release tags
+        if: ${{ !inputs.build-and-push-only && inputs.publish-release }}
+        env:
+          VERSION: ${{ steps.version.outputs.REL_VERSION }}
+        run: |
+          set -eux
+          version_no_v="${VERSION#v}"
+          major="v$(echo "${version_no_v}" | awk -F. '{print $1}')"
+          minor="v$(echo "${version_no_v}" | awk -F. '{print $1"."$2}')"
+
+          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q .; then
+            echo "Release tag ${VERSION} already exists on origin"
+            exit 1
+          fi
+
+          git tag --annotate "${VERSION}" --message "${VERSION}"
+          git push origin "refs/tags/${VERSION}"
+
+          git tag --force --annotate "${minor}" --message "${VERSION}"
+          git push --force origin "refs/tags/${minor}"
+
+          git tag --force --annotate "${major}" --message "${VERSION}"
+          git push --force origin "refs/tags/${major}"
+
+      - name: Create GitHub release
+        if: ${{ !inputs.build-and-push-only && inputs.publish-release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.REL_VERSION }}
+          generate_release_notes: true
 
       - name: Export version output
         id: export-version

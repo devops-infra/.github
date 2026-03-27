@@ -22,6 +22,11 @@ on:
         required: false
         default: false
         type: boolean
+      create_release:
+        description: Create release tags and publish GitHub release
+        required: false
+        default: true
+        type: boolean
 
 permissions:
   contents: write
@@ -37,5 +42,6 @@ jobs:
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
       build-and-push-only: ${{ inputs.build_only }}
+      publish-release: ${{ inputs.create_release }}
       profile: other
       docker-platforms: amd64,arm64

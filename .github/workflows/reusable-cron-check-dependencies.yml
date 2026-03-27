@@ -1,4 +1,4 @@
-name: (Reusable Actions) Cron Check Dependencies
+name: (Reusable - Cron) Check Dependencies
 
 on:
   workflow_call:
@@ -15,14 +15,14 @@ on:
         description: Docker platforms to build for
         type: string
         default: amd64,arm64
-      enable-docker:
-        description: Enable docker build/push validation
-        type: boolean
-        default: true
       enable-lint:
         description: Run lint checks during weekly scan
         type: boolean
         default: true
+      profile:
+        description: Repository profile (actions, dockerized, other, static)
+        type: string
+        default: actions
       stale-days:
         description: Mark branches/issues stale after this many days
         type: number
@@ -126,11 +126,11 @@ jobs:
         run: echo "- [dependencies] Dependency check reported updates or failed" >> .tmp/findings.md
 
       - name: Install Docker Buildx
-        if: inputs.enable-docker
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
         uses: docker/setup-buildx-action@v4
 
       - name: Install QEMU
-        if: inputs.enable-docker
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
         uses: docker/setup-qemu-action@v4
         with:
           image: tonistiigi/binfmt:latest
@@ -138,7 +138,7 @@ jobs:
 
       - name: Validate docker build and push
         id: docker
-        if: inputs.enable-docker
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
         continue-on-error: true
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
@@ -149,7 +149,7 @@ jobs:
           task docker:push:inspect
 
       - name: Record docker findings
-        if: inputs.enable-docker && steps.docker.outcome != 'success'
+        if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.docker.outcome != 'success'
         run: echo "- [docker] Docker validation failed (build/push/inspect)" >> .tmp/findings.md
 
       - name: Detect stale branches and issues

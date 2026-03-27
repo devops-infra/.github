@@ -1,4 +1,4 @@
-name: (Reusable Actions) Manual Sync Common Files
+name: (Reusable - Manual) Sync Common Files
 
 on:
   workflow_call:

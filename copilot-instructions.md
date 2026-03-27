@@ -135,6 +135,12 @@ Per `.github/CONTRIBUTING.md`:
 - `test/*` - Testing changes (use for draft PRs to test CI/CD)
 - `release/*` - Release branches (trigger release workflow when merged)
 
+### Git Safety (Mandatory)
+- Never push directly to `master` or `main`.
+- Never merge feature branches into `master`/`main` via CLI.
+- Always push to a feature branch and create/update a pull request.
+- Final merge to `master`/`main` must be done in GitHub UI by an admin user.
+
 ### Commit Messages
 - Start with past tense verb: `Added...`, `Fixed...`, `Changed...`, `Updated...`
 - Brief description of purpose
@@ -193,9 +199,10 @@ When working across repositories, navigate to the specific subdirectory first. T
 
 To update CI/CD logic for all repositories:
 1. Edit the centralized workflow in `.github/.github/workflows/*.yml`
-2. Commit and push to `.github` repository master branch
-3. Changes automatically apply to all repositories using it
-4. No need to update individual repositories (unless changing inputs)
+2. Commit and push to a feature branch
+3. Open/update a pull request for review
+4. Merge only in GitHub UI by an admin user
+5. After merge, changes automatically apply to repositories using reusable workflows (unless caller inputs/paths changed)
 
 ## Important Context
 

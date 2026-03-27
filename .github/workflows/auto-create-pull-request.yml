@@ -14,7 +14,8 @@ permissions:
 
 jobs:
   call-auto-create-pull-request:
-    uses: ./.github/workflows/reusable-other-auto-create-pull-request.yml
+    uses: ./.github/workflows/reusable-auto-create-pull-request.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
+      profile: other

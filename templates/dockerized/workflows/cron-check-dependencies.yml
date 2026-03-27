@@ -33,12 +33,12 @@ on:
 
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-cron-check-dependencies.yml@v1
+    uses: devops-infra/.github/.github/workflows/reusable-cron-check-dependencies.yml@v1
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      enable-docker: true
       enable-lint: true
+      profile: dockerized
       stale-days: ${{ inputs.stale-days }}
       issue-title: ${{ inputs.issue-title }}
       issue-labels: ${{ inputs.issue-labels }}

@@ -21,12 +21,12 @@ on:
 
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-auto-create-pull-request.yml@v1
+    uses: devops-infra/.github/.github/workflows/reusable-auto-create-pull-request.yml@v1
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      enable-docker: true
       enable-lint: true
+      profile: dockerized
       docker-platforms: ${{ inputs.docker-platforms }}
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

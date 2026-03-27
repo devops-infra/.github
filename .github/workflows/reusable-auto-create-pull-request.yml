@@ -1,4 +1,4 @@
-name: (Reusable Actions) Auto Create Pull Request
+name: (Reusable - Auto) Create Pull Request
 
 on:
   workflow_call:
@@ -11,14 +11,14 @@ on:
         description: Task version to install
         type: string
         default: 3.x
-      enable-docker:
-        description: Enable docker build and push steps
-        type: boolean
-        default: true
       enable-lint:
         description: Enable lint step
         type: boolean
         default: true
+      profile:
+        description: Repository profile (actions, dockerized, other, static)
+        type: string
+        default: actions
       docker-platforms:
         description: Docker platforms to build for
         type: string
@@ -52,7 +52,7 @@ jobs:
         run: task lint
 
   docker:
-    if: inputs.enable-docker
+    if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
     runs-on: ${{ inputs.runs-on }}
     needs: [lint]
     steps:

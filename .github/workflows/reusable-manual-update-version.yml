@@ -96,6 +96,24 @@ jobs:
                 ;;
             esac
           else
+            current=$(task version:get 2>/dev/null || true)
+            if [ -z "${current}" ] && [ -f .version ]; then
+              current=$(tr -d '\n' < .version)
+            fi
+            if [ -z "${current}" ]; then
+              echo "Current version not found"
+              exit 1
+            fi
+
+            no_v=${current#v}
+            major=$(echo "${no_v}" | awk -F. '{print $1}')
+            minor=$(echo "${no_v}" | awk -F. '{print $2}')
+            patch=$(echo "${no_v}" | awk -F. '{print $3}')
+            if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
+              echo "Invalid current version: ${current}"
+              exit 1
+            fi
+
             case "${BUMP_TYPE}" in
               set)
                 if [ -z "${INPUT_VERSION}" ]; then
@@ -105,60 +123,12 @@ jobs:
                 next="${INPUT_VERSION}"
                 ;;
               patch)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
-                  exit 1
-                fi
-                no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
                 next="v${major}.${minor}.$((patch + 1))"
                 ;;
               minor)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
-                  exit 1
-                fi
-                no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
                 next="v${major}.$((minor + 1)).0"
                 ;;
               major)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
-                  exit 1
-                fi
-                no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
                 next="v$((major + 1)).0.0"
                 ;;
               *)

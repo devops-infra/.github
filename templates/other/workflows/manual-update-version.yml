@@ -42,6 +42,4 @@ jobs:
       bump-type: ${{ inputs.bump-type }}
       explicit-version: ${{ inputs.explicit-version }}
       build-and-push-only: ${{ inputs.build-and-push-only }}
-      enable-docker: false
-      profile: other
       docker-platforms: ${{ inputs.docker-platforms }}

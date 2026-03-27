@@ -54,13 +54,13 @@ vars:
     sh: 'grep "image: docker://{{.DOCKER_NAME}}:" action.yml 2>/dev/null | cut -d ":" -f 4'
   AUTHOR_FROM_ACTION_YML:
     sh: |
-      grep -e "^author:" action.yml 2>/dev/null | head -1 | awk -F": " '{print $2}'
+      grep -e "^author:" action.yml | head -1 | awk -F": " '{print $2}'
   NAME_FROM_ACTION_YML:
     sh: |
-      grep -e "^name:" action.yml 2>/dev/null | head -1 | awk -F": " '{print $2}'
+      grep -e "^name:" action.yml | head -1 | awk -F": " '{print $2}'
   DESCRIPTION_FROM_ACTION_YML:
     sh: |
-      grep -e "^description:" action.yml 2>/dev/null | head -1 | awk -F": " '{print $2}'
+      grep -e "^description:" action.yml | head -1 | awk -F": " '{print $2}'
   LABEL_AUTHOR: '{{.LABEL_AUTHOR | default .AUTHOR_FROM_ACTION_YML}}'
   LABEL_NAME: '{{.LABEL_NAME | default .NAME_FROM_ACTION_YML}}'
   LABEL_DESCRIPTION: '{{.LABEL_DESCRIPTION | default .DESCRIPTION_FROM_ACTION_YML}}'

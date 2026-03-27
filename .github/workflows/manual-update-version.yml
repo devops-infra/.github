@@ -30,13 +30,11 @@ permissions:
 
 jobs:
   call-version-update:
-    uses: ./.github/workflows/reusable-actions-manual-update-version.yml
+    uses: ./.github/workflows/reusable-other-manual-update-version.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
       build-and-push-only: ${{ inputs.build_only }}
-      enable-docker: false
-      profile: other
       docker-platforms: amd64,arm64

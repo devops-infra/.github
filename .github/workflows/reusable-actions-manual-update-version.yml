@@ -24,14 +24,6 @@ on:
         description: Skip version update and only build/push artifacts
         type: boolean
         default: false
-      enable-docker:
-        description: Enable docker build/push in build-only mode
-        type: boolean
-        default: true
-      profile:
-        description: Repository profile (actions, dockerized, other, static)
-        type: string
-        default: actions
       docker-platforms:
         description: Docker platforms to build for when build-only mode is enabled
         type: string
@@ -73,76 +65,30 @@ jobs:
         env:
           BUMP_TYPE: ${{ inputs.bump-type }}
           INPUT_VERSION: ${{ inputs.explicit-version }}
-          PROFILE: ${{ inputs.profile }}
         run: |
           set -eux
-          if [ "${PROFILE}" = "actions" ]; then
-            case "${BUMP_TYPE}" in
-              set)
-                if [ -z "${INPUT_VERSION}" ]; then
-                  echo "Missing version for type=set"
-                  exit 1
-                fi
-                task version:set VERSION_OVERRIDE="${INPUT_VERSION}"
-                ;;
-              patch)
-                task version:update:patch
-                ;;
-              minor)
-                task version:update:minor
-                ;;
-              major)
-                task version:update:major
-                ;;
-              *)
-                echo "Unknown type: ${BUMP_TYPE}"
+          case "${BUMP_TYPE}" in
+            set)
+              if [ -z "${INPUT_VERSION}" ]; then
+                echo "Missing version for type=set"
                 exit 1
-                ;;
-            esac
-          else
-            current=$(task version:get 2>/dev/null || true)
-            if [ -z "${current}" ] && [ -f .version ]; then
-              current=$(tr -d '\n' < .version)
-            fi
-            if [ -z "${current}" ]; then
-              echo "Current version not found"
+              fi
+              task version:set VERSION_OVERRIDE="${INPUT_VERSION}"
+              ;;
+            patch)
+              task version:update:patch
+              ;;
+            minor)
+              task version:update:minor
+              ;;
+            major)
+              task version:update:major
+              ;;
+            *)
+              echo "Unknown type: ${BUMP_TYPE}"
               exit 1
-            fi
-
-            no_v=${current#v}
-            major=$(echo "${no_v}" | awk -F. '{print $1}')
-            minor=$(echo "${no_v}" | awk -F. '{print $2}')
-            patch=$(echo "${no_v}" | awk -F. '{print $3}')
-            if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-              echo "Invalid current version: ${current}"
-              exit 1
-            fi
-
-            case "${BUMP_TYPE}" in
-              set)
-                if [ -z "${INPUT_VERSION}" ]; then
-                  echo "Missing version for type=set"
-                  exit 1
-                fi
-                next="${INPUT_VERSION}"
-                ;;
-              patch)
-                next="v${major}.${minor}.$((patch + 1))"
-                ;;
-              minor)
-                next="v${major}.$((minor + 1)).0"
-                ;;
-              major)
-                next="v$((major + 1)).0.0"
-                ;;
-              *)
-                echo "Unknown type: ${BUMP_TYPE}"
-                exit 1
-                ;;
-            esac
-
-            printf "%s" "${next}" > .version
-          fi
+              ;;
+          esac
           echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve current version for build-only mode
@@ -151,18 +97,18 @@ jobs:
         run: echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 
       - name: Install Docker Buildx
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only }}
         uses: docker/setup-buildx-action@v4
 
       - name: Install QEMU
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only }}
         uses: docker/setup-qemu-action@v4
         with:
           image: tonistiigi/binfmt:latest
           platforms: ${{ inputs.docker-platforms }}
 
       - name: Build and push artifacts only
-        if: ${{ inputs.build-and-push-only && inputs.enable-docker }}
+        if: ${{ inputs.build-and-push-only }}
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
@@ -171,10 +117,6 @@ jobs:
           task docker:cmds
           task docker:push
           task docker:push:inspect
-
-      - name: Build-only mode without docker
-        if: ${{ inputs.build-and-push-only && !inputs.enable-docker }}
-        run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
       - name: Get template
         if: ${{ !inputs.build-and-push-only }}

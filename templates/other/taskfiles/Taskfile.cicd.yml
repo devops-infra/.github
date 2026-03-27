@@ -90,14 +90,24 @@ tasks:
       - echo "{{.VERSION}}"
 
   version:set:
-    desc: Update .version file
+    desc: Update version in README.md and action.yml
     cmds:
       - |
-        if [ -z "{{.VERSION}}" ]; then
-          echo "❌ ERROR: VERSION is empty"
+        # check if VERSION if different than VERSION_FROM_ACTION_YML
+        if [ "{{.VERSION}}" = "{{.VERSION_FROM_ACTION_YML}}" ]; then
+          echo "❌ ERROR: VERSION is same as VERSION_FROM_ACTION_YML ({{.VERSION}})"
           exit 1
         fi
-      - echo "{{.VERSION}}" > .version
+      - echo Updating full version from {{.VERSION_FROM_ACTION_YML}} to {{.VERSION}}
+      - echo Updating minor version from {{.MINOR_FROM_ACTION_YML}} to {{.VERSION_MINOR}}
+      - echo Updating major version from {{.MAJOR_FROM_ACTION_YML}} to {{.VERSION_MAJOR}}
+      - "{{.SED}} -i 's#{{.DOCKER_NAME}}:{{.VERSION_FROM_ACTION_YML}}#{{.DOCKER_NAME}}:{{.VERSION}}#g' action.yml"
+      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.VERSION_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION}}#g' README.md"
+      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.VERSION_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION}}#g' README.md"
+      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.MINOR_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION_MINOR}}#g' README.md"
+      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.MINOR_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION_MINOR}}#g' README.md"
+      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.MAJOR_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION_MAJOR}}#g' README.md"
+      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.MAJOR_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION_MAJOR}}#g' README.md"
 
   version:update:patch:
     desc: Increment patch version (e.g., 1.2.3 -> 1.2.4)

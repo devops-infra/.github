@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   call-sync-files:
-    uses: ./.github/workflows/reusable-actions-manual-sync-common-files.yml
+    uses: ./.github/workflows/reusable-other-manual-sync-common-files.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x

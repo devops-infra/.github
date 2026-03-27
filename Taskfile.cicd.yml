@@ -3,9 +3,9 @@ version: '3'
 silent: true
 
 vars:
-  PR_TEMPLATE: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/PULL_REQUEST_TEMPLATE.md
-  CONFIGS_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/other/configs
-  TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/other/taskfiles
+  PR_TEMPLATE: https://raw.githubusercontent.com/devops-infra/.github/refs/tags/v1/PULL_REQUEST_TEMPLATE.md
+  CONFIGS_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/tags/v1/templates/other/configs
+  TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/tags/v1/templates/other/taskfiles
 
 tasks:
   pre-commit:

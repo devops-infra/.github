@@ -43,7 +43,7 @@ jobs:
       - name: Sync files and get PR template
         id: sync
         env:
-          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/${{ inputs.template-profile }}/taskfiles
+          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/tags/v1/templates/${{ inputs.template-profile }}/taskfiles
         run: |
           set -eux
           case "${{ inputs.sync-type }}" in

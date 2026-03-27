@@ -96,70 +96,58 @@ jobs:
                 ;;
             esac
           else
+            normalize_and_validate_version() {
+              local input="$1"
+              local candidate
+              candidate="${input#v}"
+              if ! printf "%s" "${candidate}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+                return 1
+              fi
+              printf "v%s" "${candidate}"
+            }
+
+            get_current_version() {
+              local current
+              current=$(task version:get 2>/dev/null || true)
+              if [ -z "${current}" ] && [ -f .version ]; then
+                current=$(tr -d '\n' < .version)
+              fi
+              if [ -z "${current}" ]; then
+                return 1
+              fi
+              normalize_and_validate_version "${current}"
+            }
+
             case "${BUMP_TYPE}" in
               set)
                 if [ -z "${INPUT_VERSION}" ]; then
                   echo "Missing version for type=set"
                   exit 1
                 fi
-                next="${INPUT_VERSION}"
+                next=$(normalize_and_validate_version "${INPUT_VERSION}") || {
+                  echo "Invalid explicit version: ${INPUT_VERSION}. Expected vX.Y.Z or X.Y.Z"
+                  exit 1
+                }
                 ;;
-              patch)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
+              patch|minor|major)
+                current=$(get_current_version) || {
+                  echo "Current version not found or invalid. Expected vX.Y.Z"
                   exit 1
-                fi
+                }
                 no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
-                next="v${major}.${minor}.$((patch + 1))"
-                ;;
-              minor)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
-                  exit 1
-                fi
-                no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
-                next="v${major}.$((minor + 1)).0"
-                ;;
-              major)
-                current=$(task version:get 2>/dev/null || true)
-                if [ -z "${current}" ] && [ -f .version ]; then
-                  current=$(tr -d '\n' < .version)
-                fi
-                if [ -z "${current}" ]; then
-                  echo "Current version not found"
-                  exit 1
-                fi
-                no_v=${current#v}
-                major=$(echo "${no_v}" | awk -F. '{print $1}')
-                minor=$(echo "${no_v}" | awk -F. '{print $2}')
-                patch=$(echo "${no_v}" | awk -F. '{print $3}')
-                if [ -z "${major}" ] || [ -z "${minor}" ] || [ -z "${patch}" ]; then
-                  echo "Invalid current version: ${current}"
-                  exit 1
-                fi
-                next="v$((major + 1)).0.0"
+                IFS='.' read -r major minor patch <<< "${no_v}"
+
+                case "${BUMP_TYPE}" in
+                  patch)
+                    next="v${major}.${minor}.$((patch + 1))"
+                    ;;
+                  minor)
+                    next="v${major}.$((minor + 1)).0"
+                    ;;
+                  major)
+                    next="v$((major + 1)).0.0"
+                    ;;
+                esac
                 ;;
               *)
                 echo "Unknown type: ${BUMP_TYPE}"

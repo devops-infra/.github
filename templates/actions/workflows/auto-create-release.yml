@@ -1,5 +1,9 @@
 name: (Auto) Create release
 
+
+# TODO: take from action-commit-push
+
+
 on:
   workflow_call:
     inputs:

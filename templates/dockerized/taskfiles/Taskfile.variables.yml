@@ -30,3 +30,38 @@ vars:
       fi
   PROJECT_DIR_NAME:
     sh: basename "$PWD"
+  VERSION_FILE: .version
+  VERSION_FROM_FILE:
+    sh: |
+      if [ ! -f "{{.VERSION_FILE}}" ]; then
+        echo ""
+      else
+        tr -d '\n' < "{{.VERSION_FILE}}"
+      fi
+  VERSION_OVERRIDE:
+    sh: echo "__TAKEN_FROM_FILE__"
+  VERSION:
+    sh: |
+      if [ "${VERSION_OVERRIDE}" = "__TAKEN_FROM_FILE__" ]; then
+        echo "{{.VERSION_FROM_FILE}}"
+      else
+        echo "${VERSION_OVERRIDE}"
+      fi
+  VERSION_NO_V:
+    sh: v="{{.VERSION}}"; echo "${v#v}"
+  MAJOR:
+    sh: echo "{{.VERSION_NO_V}}" | awk -F\. '{print $1}'
+  MINOR:
+    sh: echo "{{.VERSION_NO_V}}" | awk -F\. '{print $2}'
+  PATCH:
+    sh: echo "{{.VERSION_NO_V}}" | awk -F\. '{print $3}'
+  VERSION_MAJOR: v{{.MAJOR}}
+  VERSION_MINOR: v{{.MAJOR}}.{{.MINOR}}
+  VERSION_FULL: v{{.MAJOR}}.{{.MINOR}}.{{.PATCH}}
+  NEXT_PATCH:
+    sh: echo $(( {{.PATCH}} + 1 ))
+  NEXT_MINOR:
+    sh: echo $(( {{.MINOR}} + 1 ))
+  NEXT_MAJOR:
+    sh: echo $(( {{.MAJOR}} + 1 ))
+

@@ -42,8 +42,16 @@ vars:
   GITHUB_NAME: '{{.GITHUB_ORG_NAME}}/{{.GITHUB_REPO}}'
   GHRC_NAME: ghcr.io/{{.GITHUB_ORG_NAME}}/{{.GITHUB_REPO}}
   DEFAULT_BRANCH: master
+  VERSION_FILE: .version
+  VERSION_FROM_FILE:
+    sh: |
+      if [ ! -f "{{.VERSION_FILE}}" ]; then
+        echo ""
+      else
+        tr -d '\n' < "{{.VERSION_FILE}}"
+      fi
   VERSION_FROM_ACTION_YML:
-    sh: 'grep "image: docker://{{.DOCKER_NAME}}:" action.yml | cut -d ":" -f 4'
+    sh: 'grep "image: docker://{{.DOCKER_NAME}}:" action.yml 2>/dev/null | cut -d ":" -f 4'
   AUTHOR_FROM_ACTION_YML:
     sh: |
       grep -e "^author:" action.yml | head -1 | awk -F": " '{print $2}'
@@ -83,11 +91,11 @@ vars:
         printf "%s" "-test"
       fi
   VERSION_OVERRIDE:
-    sh: echo "__TAKEN_FROM_ACTION_YML__"
+    sh: echo "__TAKEN_FROM_FILE__"
   VERSION:
     sh: |
-      if [ "${VERSION_OVERRIDE}" = "__TAKEN_FROM_ACTION_YML__" ]; then
-        echo "{{.VERSION_FROM_ACTION_YML}}"
+      if [ "${VERSION_OVERRIDE}" = "__TAKEN_FROM_FILE__" ]; then
+        echo "{{.VERSION_FROM_FILE}}"
       elif [ -z "${VERSION_OVERRIDE}" ]; then
         echo "{{.LAST_RELEASE}}"
       else

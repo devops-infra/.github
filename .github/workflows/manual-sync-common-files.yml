@@ -34,5 +34,5 @@ jobs:
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
-      sync-type: ${{ github.event.inputs.type }}
-      template-profile: ${{ github.event.inputs.profile }}
+      sync-type: ${{ inputs.type }}
+      template-profile: ${{ inputs.profile }}

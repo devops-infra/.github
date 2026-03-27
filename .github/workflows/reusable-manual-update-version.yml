@@ -24,10 +24,6 @@ on:
         description: Skip version update and only build/push artifacts
         type: boolean
         default: false
-      publish-release:
-        description: Create release tags and publish GitHub release instead of opening PR
-        type: boolean
-        default: false
       profile:
         description: Repository profile (actions, dockerized, other, static)
         type: string
@@ -194,33 +190,8 @@ jobs:
         if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}
         run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
-      - name: Get template
-        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
-        env:
-          VERSION_SUFFIX: ""
-        run: |
-          task git:set-config
-          task git:get-pr-template
-
-      - name: Push to release branch
-        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
-        uses: devops-infra/action-commit-push@v1
-        with:
-          github_token: ${{ github.token }}
-          commit_message: ":rocket: Bump version to ${{ steps.version.outputs.REL_VERSION }}"
-          target_branch: ${{ format('release/{0}', steps.version.outputs.REL_VERSION) }}
-
-      - name: Create Pull Request
-        if: ${{ !inputs.build-and-push-only && !inputs.publish-release }}
-        uses: devops-infra/action-pull-request@v1
-        with:
-          github_token: ${{ github.token }}
-          assignee: ${{ github.actor }}
-          template: .tmp/PULL_REQUEST_TEMPLATE.md
-          get_diff: true
-
       - name: Create and push release tags
-        if: ${{ !inputs.build-and-push-only && inputs.publish-release }}
+        if: ${{ !inputs.build-and-push-only }}
         env:
           VERSION: ${{ steps.version.outputs.REL_VERSION }}
         run: |
@@ -244,7 +215,7 @@ jobs:
           git push --force origin "refs/tags/${major}"
 
       - name: Create GitHub release
-        if: ${{ !inputs.build-and-push-only && inputs.publish-release }}
+        if: ${{ !inputs.build-and-push-only }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.REL_VERSION }}

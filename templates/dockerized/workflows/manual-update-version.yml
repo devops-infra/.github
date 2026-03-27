@@ -24,10 +24,6 @@ on:
         description: Skip version update and only build/push artifacts
         type: boolean
         default: false
-      publish-release:
-        description: Create release tags and publish GitHub release
-        type: boolean
-        default: true
       docker-platforms:
         description: Docker platforms to build for when build-only mode is enabled
         type: string
@@ -49,7 +45,6 @@ jobs:
       bump-type: ${{ inputs.bump-type }}
       explicit-version: ${{ inputs.explicit-version }}
       build-and-push-only: ${{ inputs.build-and-push-only }}
-      publish-release: ${{ inputs.publish-release }}
       profile: dockerized
       docker-platforms: ${{ inputs.docker-platforms }}
     secrets:

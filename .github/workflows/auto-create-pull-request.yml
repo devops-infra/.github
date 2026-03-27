@@ -1,0 +1,20 @@
+name: (Auto) Create Pull Request
+
+on:
+  push:
+    branches-ignore:
+      - master
+      - main
+      - dependabot/**
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+jobs:
+  call-auto-create-pull-request:
+    uses: ./.github/workflows/reusable-other-auto-create-pull-request.yml
+    with:
+      runs-on: ubuntu-24.04-arm
+      task-version: 3.x

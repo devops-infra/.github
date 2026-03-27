@@ -1,0 +1,17 @@
+# Intellij
+/.idea/
+*.iml
+
+# Custom
+.DS_Store
+.tmp/
+.venv
+.venv/
+.envrc
+.env
+.tmp
+
+
+# Static
+.jekyll-cache/
+_site/

@@ -1,0 +1,40 @@
+name: (Manual) Update Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      type:
+        description: Bump type
+        required: false
+        default: patch
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - set
+      version:
+        description: Explicit version when type="set" (e.g., v1.2.3)
+        required: false
+        default: ''
+      build_only:
+        description: Build and push artifacts without version bump
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  call-version-update:
+    uses: ./.github/workflows/reusable-other-manual-update-version.yml
+    with:
+      runs-on: ubuntu-24.04-arm
+      task-version: 3.x
+      bump-type: ${{ github.event.inputs.type }}
+      explicit-version: ${{ github.event.inputs.version }}
+      build-and-push-only: ${{ github.event.inputs.build_only }}
+      docker-platforms: amd64,arm64

@@ -1,0 +1,101 @@
+name: (Manual) Update Version
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner to use
+        type: string
+        default: ubuntu-24.04-arm
+      task-version:
+        description: Task version to install
+        type: string
+        default: 3.x
+      bump-type:
+        description: Bump type (patch, minor, major, set)
+        type: string
+        required: false
+        default: patch
+      explicit-version:
+        description: Explicit version when type="set"
+        type: string
+        default: ''
+    outputs:
+      version:
+        description: Updated version
+        value: ${{ jobs.version.outputs.version }}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  version:
+    name: Update static version and create PR
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      version: ${{ steps.version.outputs.REL_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+
+      - name: Update version
+        id: version
+        env:
+          BUMP_TYPE: ${{ inputs.bump-type }}
+          INPUT_VERSION: ${{ inputs.explicit-version }}
+        run: |
+          set -eux
+          case "${BUMP_TYPE}" in
+            set)
+              if [ -z "${INPUT_VERSION}" ]; then
+                echo "Missing version for type=set"
+                exit 1
+              fi
+              task version:set VERSION="${INPUT_VERSION}"
+              ;;
+            patch)
+              task version:update:patch
+              ;;
+            minor)
+              task version:update:minor
+              ;;
+            major)
+              task version:update:major
+              ;;
+            *)
+              echo "Unknown type: ${BUMP_TYPE}"
+              exit 1
+              ;;
+          esac
+          echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
+
+      - name: Set git config and PR template
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          mkdir -p .tmp
+          cp PULL_REQUEST_TEMPLATE.md .tmp/PULL_REQUEST_TEMPLATE.md
+
+      - name: Push release branch
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ github.token }}
+          commit_message: ":rocket: Bump version to ${{ steps.version.outputs.REL_VERSION }}"
+          target_branch: ${{ format('release/{0}', steps.version.outputs.REL_VERSION) }}
+
+      - name: Create Pull Request
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          assignee: ${{ github.actor }}
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
+          get_diff: true

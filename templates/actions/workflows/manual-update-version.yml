@@ -1,0 +1,153 @@
+name: (Manual) Update Version
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: 'Runner to use'
+        type: string
+        default: 'ubuntu-24.04-arm'
+      task-version:
+        description: 'Task version to install'
+        type: string
+        default: '3.x'
+      bump-type:
+        description: 'Bump type (patch, minor, major, set)'
+        type: string
+        required: false
+        default: 'patch'
+      explicit-version:
+        description: 'Explicit version when type="set"'
+        type: string
+        default: ''
+      build-and-push-only:
+        description: 'Skip version update and only build/push artifacts'
+        type: boolean
+        default: false
+      docker-platforms:
+        description: 'Docker platforms to build for when build-only mode is enabled'
+        type: string
+        default: 'amd64,arm64'
+    outputs:
+      version:
+        description: 'Updated version'
+        value: ${{ jobs.update.outputs.version }}
+    secrets:
+      DOCKER_TOKEN:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  update:
+    name: Update version and push release branch
+    runs-on: ${{ inputs.runs-on }}
+    outputs:
+      version: ${{ steps.export-version.outputs.REL_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+
+      - name: Update version
+        id: version
+        if: ${{ !inputs.build-and-push-only }}
+        env:
+          BUMP_TYPE: ${{ inputs.bump-type }}
+          INPUT_VERSION: ${{ inputs.explicit-version }}
+        run: |
+          set -eux
+          case "${BUMP_TYPE}" in
+            set)
+              if [ -z "${INPUT_VERSION}" ]; then
+                echo "Missing version for type=set"
+                exit 1
+              fi
+              task version:set VERSION_OVERRIDE="${INPUT_VERSION}"
+              ;;
+            patch)
+              task version:update:patch
+              ;;
+            minor)
+              task version:update:minor
+              ;;
+            major)
+              task version:update:major
+              ;;
+            *)
+              echo "Unknown type: ${BUMP_TYPE}"
+              exit 1
+              ;;
+          esac
+          echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve current version for build-only mode
+        id: version-current
+        if: ${{ inputs.build-and-push-only }}
+        run: echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Docker Buildx
+        if: ${{ inputs.build-and-push-only }}
+        uses: docker/setup-buildx-action@v4
+
+      - name: Install QEMU
+        if: ${{ inputs.build-and-push-only }}
+        uses: docker/setup-qemu-action@v4
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: ${{ inputs.docker-platforms }}
+
+      - name: Build and push artifacts only
+        if: ${{ inputs.build-and-push-only }}
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION_SUFFIX: ''
+        run: |
+          task docker:cmds
+          task docker:push
+          task docker:push:inspect
+
+      - name: Get template
+        if: ${{ !inputs.build-and-push-only }}
+        env:
+          VERSION_SUFFIX: ""
+        run: |
+          task git:set-config
+          task git:get-pr-template
+
+      - name: Push to release branch
+        if: ${{ !inputs.build-and-push-only }}
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ github.token }}
+          commit_message: ":rocket: Bump version to ${{ steps.version.outputs.REL_VERSION }}"
+          target_branch: ${{ format('release/{0}', steps.version.outputs.REL_VERSION) }}
+
+      - name: Create Pull Request
+        if: ${{ !inputs.build-and-push-only }}
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          assignee: ${{ github.actor }}
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
+          get_diff: true
+
+      - name: Export version output
+        id: export-version
+        run: |
+          if [ "${{ inputs.build-and-push-only }}" = "true" ]; then
+            echo "REL_VERSION=${{ steps.version-current.outputs.REL_VERSION }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "REL_VERSION=${{ steps.version.outputs.REL_VERSION }}" >> "$GITHUB_OUTPUT"
+          fi

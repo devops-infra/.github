@@ -1,0 +1,230 @@
+# Migration to Centralized Reusable Workflows
+
+## Summary
+
+This setup establishes the `.github` repository as a centralized meta repository for all devops-infra workflows, eliminating duplication across ~14 repositories.
+
+## What Was Created
+
+### 1. Reusable Workflows (`templates/actions/workflows/`)
+
+Five centralized workflows:
+
+| Workflow                                | Purpose                                 | Replaces                       |
+|-----------------------------------------|-----------------------------------------|--------------------------------|
+| `templates/actions/workflows/auto-create-pull-request.yml` | Auto-create PRs for feature branches    | `auto-create-pull-request.yml` |
+| `templates/actions/workflows/auto-create-release.yml`      | Create releases from merged PRs         | `auto-create-release.yml`      |
+| `templates/actions/workflows/cron-check-dependencies.yml`  | Scheduled dependency testing            | `cron-check-dependencies.yml`  |
+| `templates/actions/workflows/manual-update-version.yml`    | Manual version bumps                    | `manual-update-version.yml`    |
+| `templates/actions/workflows/manual-sync-common-files.yml` | Sync common files from template sources | `manual-sync-common-files.yml` |
+
+Additional profile wrappers are available in:
+
+- `templates/dockerized/workflows/*`
+- `templates/other/workflows/*`
+- `templates/static/workflows/*`
+
+Static repositories may additionally use:
+
+- `templates/static/workflows/deploy-pages.yml`
+
+### 2. Example Caller Workflows (`.github/.github/workflows/`)
+
+Ready-to-use caller workflows showing how repositories call the centralized workflows:
+- `auto-create-pull-request.yml`
+- `cron-check-dependencies.yml`
+- `manual-update-version.yml`
+- `manual-sync-common-files.yml`
+
+### 3. Reusable Taskfiles (`templates/actions/taskfiles/`)
+
+Shared Taskfile templates used by the sync-files workflow:
+- `Taskfile.yml`
+- `Taskfile.cicd.yml`
+- `Taskfile.docker.yml`
+- `Taskfile.variables.yml`
+
+### 4. Reusable Configs (`templates/actions/configs/`)
+
+Shared config files synced by `sync:configs` and `sync:ignores`:
+- `.editorconfig`
+- `.hadolint.yaml`
+- `.pre-commit-config.yaml`
+- `.shellcheckrc`
+- `.yamllint.yml`
+- `.gitignore`
+- `.dockerignore`
+
+### 5. Documentation
+
+- `README.md` - Complete guide to centralized workflows, migration process, and troubleshooting
+- Updated `copilot-instructions.md` - Added centralized workflow section and Task runner info
+
+## Migration Process
+
+### Step 1: Commit and Push to .github Repository
+
+```bash
+cd /Users/christoph/IdeaProjects/devops-infra/.github
+git add .github/workflows/*.yml
+git add templates/actions/workflows/*.yml
+git add .github/workflows/README.md
+git add templates/actions/configs/
+git add templates/actions/taskfiles/
+git add copilot-instructions.md
+git commit -m "feat: Add centralized workflows for organization"
+git push origin master
+```
+
+### Step 2: Migrate Individual Repositories
+
+Choose one of these approaches:
+
+#### Option A: Manual Migration (Recommended for first repo)
+
+1. **Pick a test repository** (suggest `action-format-hcl` as it's simpler)
+
+2. **Copy example workflows:**
+   ```bash
+   cd /Users/christoph/IdeaProjects/devops-infra/action-format-hcl
+   
+   # Backup existing workflows
+   cp -r .github/workflows .github/workflows.backup
+   
+   # Copy caller workflows
+   cp ../.github/.github/workflows/{auto-create-pull-request.yml,auto-create-release.yml,cron-check-dependencies.yml,manual-update-version.yml,manual-sync-common-files.yml} .github/workflows/
+   ```
+
+3. **Remove old workflows:**
+   ```bash
+   # Keep only the new caller workflows
+   ls .github/workflows/
+   ```
+
+4. **Test:**
+   ```bash
+   git checkout -b test/central-workflows
+   git add .github/workflows/
+   git commit -m "test: Migrate to centralized workflows"
+   git push origin test/central-workflows
+   ```
+
+5. **Verify in GitHub Actions UI** that the workflow runs correctly
+
+### Step 3: Rollout to All Repositories
+
+Once verified with one repository, migrate the rest:
+
+**Repositories to migrate:**
+- action-commit-push
+- action-format-hcl ✓ (use as test)
+- action-pull-request
+- action-terraform-copy-vars
+- action-terraform-validate
+- action-tflint
+- docker-simple-runner
+- docker-terragrunt
+- template-action
+
+**Repositories that may need customization:**
+- `velez` - Uses Python/pytest, not Docker (may need different workflow)
+
+**Archived repositories (excluded from automation):**
+- `docker-okta-aws-sso`
+
+### Step 4: Cleanup
+
+After successful migration and testing:
+
+```bash
+# In each repository
+rm -rf .github/workflows.backup*
+```
+
+## Benefits After Migration
+
+### Before
+- ~70 duplicate workflow files across 14 repositories
+- Bug fixes require updating 14 repos individually
+- Inconsistent workflow versions between repos
+- High maintenance burden
+
+### After
+- 5 centralized workflows + ~14 small caller workflows
+- Update logic once in `.github`, applies everywhere
+- Guaranteed consistency across all repos
+- Minimal maintenance
+
+## Customization Examples
+
+### Disable Docker for non-Docker repos
+```yaml
+jobs:
+  call-workflow:
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
+    with:
+      enable-docker: false
+      enable-lint: true
+```
+
+### Use different runner
+```yaml
+jobs:
+  call-workflow:
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
+    with:
+      runs-on: ubuntu-latest
+```
+
+### Single-arch builds
+```yaml
+jobs:
+  call-workflow:
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
+    with:
+      docker-platforms: amd64
+```
+
+## Rollback Plan
+
+If issues occur:
+
+1. **Individual repository:** Restore from `.github/workflows.backup`
+2. **Organization-wide:** Temporarily pin to old workflow files until fixed
+3. **Revert .github changes:** `git revert <commit>` in `.github` repository
+
+## Future Enhancements
+
+1. **Version tagging:** Pin workflows to tags instead of `@master` for stability
+   ```yaml
+   uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1.0.0
+   ```
+
+2. **Python-specific workflow:** Create centralized workflow for `velez` and similar Python projects
+
+3. **Makefile-specific workflow:** Create centralized workflow for repos still using Make
+
+4. **Auto-sync workflow:** Create workflow that automatically updates caller workflows in all repos when examples change
+
+5. **Workflow testing:** Add tests to validate centralized workflows before deployment
+
+## Support
+
+For issues or questions:
+- Check `README.md` in `.github/.github/workflows/`
+- Review reusable templates in `templates/*/workflows/`
+- Test with one repository first (for example `action-format-hcl`)
+- Start with one simple repository before migrating all
+
+## Checklist
+
+- [ ] Commit and push centralized workflows to `.github` repository
+- [ ] Test migration with `action-format-hcl` (or similar simple repo)
+- [ ] Verify GitHub Actions run successfully
+- [ ] Migrate remaining action-* repositories
+- [ ] Migrate docker-* repositories (may need customization)
+- [ ] Handle special cases (velez)
+- [ ] Skip archived repositories (docker-okta-aws-sso)
+- [ ] Clean up backup directories
+- [ ] Update any documentation referencing old workflows
+- [ ] Consider implementing version tagging for workflows

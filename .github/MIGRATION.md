@@ -61,14 +61,6 @@ Shared config files synced by `sync:configs` and `sync:ignores`:
 - `README.md` - Complete guide to centralized workflows, migration process, and troubleshooting
 - Updated `copilot-instructions.md` - Added centralized workflow section and Task runner info
 
-### 6. Migration Script
-
-`migrate-to-reusable.sh` - Automated script to migrate repositories with:
-- Dry-run mode for testing
-- Automatic backup creation
-- Selective workflow migration
-- Clear next-steps guidance
-
 ## Migration Process
 
 ### Step 1: Commit and Push to .github Repository
@@ -78,7 +70,6 @@ cd /Users/christoph/IdeaProjects/devops-infra/.github
 git add .github/workflows/*.yml
 git add templates/actions/workflows/*.yml
 git add .github/workflows/README.md
-git add .github/workflows/migrate-to-reusable.sh
 git add templates/actions/configs/
 git add templates/actions/taskfiles/
 git add copilot-instructions.md
@@ -120,21 +111,6 @@ Choose one of these approaches:
    ```
 
 5. **Verify in GitHub Actions UI** that the workflow runs correctly
-
-#### Option B: Automated Migration
-
-```bash
-cd /Users/christoph/IdeaProjects/devops-infra/.github/.github/workflows
-
-# Dry-run first
-./migrate-to-reusable.sh ../../action-format-hcl --dry-run
-
-# If looks good, run for real
-./migrate-to-reusable.sh ../../action-format-hcl
-
-# Migrate specific workflows only
-./migrate-to-reusable.sh ../../docker-terragrunt --workflows pr,release
-```
 
 ### Step 3: Rollout to All Repositories
 
@@ -237,8 +213,8 @@ If issues occur:
 
 For issues or questions:
 - Check `README.md` in `.github/.github/workflows/`
-- Review examples in `examples/` directory
-- Test with `--dry-run` flag first
+- Review reusable templates in `templates/*/workflows/`
+- Test with one repository first (for example `action-format-hcl`)
 - Start with one simple repository before migrating all
 
 ## Checklist

@@ -18,5 +18,3 @@ jobs:
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
-      enable-docker: false
-      enable-lint: true

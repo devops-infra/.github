@@ -92,7 +92,7 @@ tasks:
           config_file="templates/other/configs/.yamllint.yml"
         fi
         set +e
-        docker run --rm -i -v "$PWD:/work" -w /work cytopia/yamllint -c "$config_file" .
+        docker run --rm -i -v "$PWD:/work" -w /work cytopia/yamllint -c "$config_file" .github .github/workflows templates
         rc=$?
         set -e
         if [ "$rc" -eq 0 ]; then

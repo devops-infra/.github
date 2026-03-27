@@ -36,6 +36,11 @@ on:
       DOCKER_TOKEN:
         required: false
 
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
 jobs:
   update:
     name: Update version and push release branch

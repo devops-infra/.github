@@ -5,6 +5,11 @@ silent: true
 includes:
   variables: ./Taskfile.variables.yml
   scripts: ./Taskfile.scripts.yml
+  docker:
+    taskfile: ./Taskfile.docker.yml
+    flatten: true
+  cicd:
+    taskfile: ./Taskfile.cicd.yml
 
 tasks:
   default:
@@ -20,47 +25,44 @@ tasks:
   pre-commit:
     desc: Run all pre-commit hooks
     cmds:
-      - pre-commit run --all-files
+      - task: cicd:pre-commit
 
   pre-commit:install:
     desc: Install pre-commit hooks
     cmds:
-      - pre-commit install
+      - task: cicd:pre-commit:install
 
   lint:
     desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
     cmds:
-      - task: lint:actionlint
-      - task: lint:hadolint
-      - task: lint:shellcheck
-      - task: lint:yamllint
+      - task: cicd:lint
 
   lint:actionlint:
     desc: Lint GitHub Actions workflows with actionlint
     cmds:
-      - task: scripts:lint:actionlint
+      - task: cicd:lint:actionlint
 
   lint:hadolint:
     desc: Lint Dockerfile with hadolint
     cmds:
-      - task: scripts:lint:hadolint
+      - task: cicd:lint:hadolint
 
   lint:shellcheck:
     desc: Lint shell scripts with shellcheck
     cmds:
-      - task: scripts:lint:shellcheck
+      - task: cicd:lint:shellcheck
 
   lint:yamllint:
     desc: Lint YAML files with yamllint
     cmds:
-      - task: scripts:lint:yamllint
+      - task: cicd:lint:yamllint
 
   git:get-pr-template:
     desc: Get pull request template
     cmds:
-      - task: scripts:git:get-pr-template
+      - task: cicd:git:get-pr-template
 
   git:set-config:
     desc: Set git user config
     cmds:
-      - task: scripts:git:set-config
+      - task: cicd:git:set-config

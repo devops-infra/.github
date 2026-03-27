@@ -27,6 +27,11 @@ on:
       DOCKER_TOKEN:
         required: false
 
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
 jobs:
   lint:
     if: inputs.enable-lint

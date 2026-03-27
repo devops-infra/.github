@@ -15,6 +15,10 @@ on:
         description: 'File type to sync (all, configs, ignores, taskfiles)'
         type: string
         required: true
+      template-profile:
+        description: 'Template profile to use for Taskfile sync (actions, dockerized, other, static)'
+        type: string
+        default: 'actions'
 
 jobs:
   update:
@@ -33,9 +37,9 @@ jobs:
           version: ${{ inputs.task-version }}
 
       - name: Sync files and get PR template
-        id: version
+        id: sync
         env:
-          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/actions/taskfiles
+          TASKFILES_BASE_URL: https://raw.githubusercontent.com/devops-infra/.github/refs/heads/master/templates/${{ inputs.template-profile }}/taskfiles
         run: |
           set -eux
           case "${{ inputs.sync-type }}" in
@@ -61,11 +65,17 @@ jobs:
             echo "▶️ Syncing Taskfiles from devops-infra/.github..."
             curl -sL "${TASKFILES_BASE_URL}/Taskfile.yml" -o ./Taskfile.yml
             curl -sL "${TASKFILES_BASE_URL}/Taskfile.cicd.yml" -o ./Taskfile.cicd.yml
-            curl -sL "${TASKFILES_BASE_URL}/Taskfile.docker.yml" -o ./Taskfile.docker.yml
             curl -sL "${TASKFILES_BASE_URL}/Taskfile.variables.yml" -o ./Taskfile.variables.yml
-            git add Taskfile*.yml
+            if curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.scripts.yml" -o ./Taskfile.scripts.yml; then
+              git add Taskfile.scripts.yml
+            fi
+            if curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.docker.yml" -o ./Taskfile.docker.yml; then
+              git add Taskfile.docker.yml
+            fi
+            git add Taskfile.yml Taskfile.cicd.yml Taskfile.variables.yml
             echo "✅ Synced Taskfiles"
           fi
+          echo "BRANCH_NAME=chore/sync-common-files-${GITHUB_RUN_ID}" >> "$GITHUB_OUTPUT"
           task git:set-config
           task git:get-pr-template
 
@@ -74,7 +84,7 @@ jobs:
         with:
           github_token: ${{ github.token }}
           commit_message: ":art: Sync common files from devops-infra/.github"
-          target_branch: ${{ format('release/{0}', steps.version.outputs.REL_VERSION) }}
+          target_branch: ${{ steps.sync.outputs.BRANCH_NAME }}
 
       - name: Create Pull Request
         uses: devops-infra/action-pull-request@v1

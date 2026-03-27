@@ -1,0 +1,47 @@
+name: (Cron) Weekly repository health
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner to use
+        type: string
+        default: ubuntu-24.04-arm
+      task-version:
+        description: Task version to install
+        type: string
+        default: 3.x
+      docker-platforms:
+        description: Docker platforms to build for
+        type: string
+        default: amd64,arm64
+      stale-days:
+        description: Mark branches/issues stale after this many days
+        type: number
+        default: 60
+      issue-title:
+        description: Issue title for weekly report
+        type: string
+        default: (Weekly) Repository health report
+      issue-labels:
+        description: Comma-separated labels for weekly report issue
+        type: string
+        default: automation,dependencies
+    secrets:
+      DOCKER_TOKEN:
+        required: true
+
+jobs:
+  call:
+    uses: devops-infra/.github/templates/actions/workflows/cron-check-dependencies.yml@v1
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      task-version: ${{ inputs.task-version }}
+      enable-docker: true
+      enable-lint: true
+      stale-days: ${{ inputs.stale-days }}
+      issue-title: ${{ inputs.issue-title }}
+      issue-labels: ${{ inputs.issue-labels }}
+      docker-platforms: ${{ inputs.docker-platforms }}
+    secrets:
+      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

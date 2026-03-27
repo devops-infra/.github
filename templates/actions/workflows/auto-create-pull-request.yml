@@ -25,7 +25,7 @@ on:
         default: 'amd64,arm64'
     secrets:
       DOCKER_TOKEN:
-        required: true
+        required: false
 
 jobs:
   lint:

@@ -3,6 +3,16 @@ name: (Manual) Sync Common Files
 on:
   workflow_dispatch:
     inputs:
+      profile:
+        description: Template profile to sync
+        required: true
+        default: other
+        type: choice
+        options:
+          - actions
+          - dockerized
+          - other
+          - static
       type:
         description: File type to sync
         required: true
@@ -20,8 +30,9 @@ permissions:
 
 jobs:
   call-sync-files:
-    uses: devops-infra/.github/templates/other/workflows/manual-sync-common-files.yml@master
+    uses: devops-infra/.github/templates/other/workflows/manual-sync-common-files.yml@v1
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
       sync-type: ${{ github.event.inputs.type }}
+      template-profile: ${{ github.event.inputs.profile }}

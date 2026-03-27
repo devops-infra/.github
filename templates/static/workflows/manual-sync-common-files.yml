@@ -1,0 +1,26 @@
+name: (Manual) Sync Common Files
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner to use
+        type: string
+        default: ubuntu-24.04-arm
+      task-version:
+        description: Task version to install
+        type: string
+        default: 3.x
+      sync-type:
+        description: File type to sync (all, configs, ignores, taskfiles)
+        type: string
+        required: true
+
+jobs:
+  call:
+    uses: devops-infra/.github/templates/actions/workflows/manual-sync-common-files.yml@v1
+    with:
+      runs-on: ${{ inputs.runs-on }}
+      task-version: ${{ inputs.task-version }}
+      sync-type: ${{ inputs.sync-type }}
+      template-profile: static

@@ -13,12 +13,10 @@ permissions:
 
 jobs:
   call-auto-create-pull-request:
-    uses: devops-infra/.github/templates/other/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/other/workflows/auto-create-pull-request.yml@v1
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
       enable-docker: false
-      enable-lint: false
+      enable-lint: true
       docker-platforms: amd64,arm64
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

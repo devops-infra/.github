@@ -1,222 +1,72 @@
-# Centralized Workflows for devops-infra Organization
+# Centralized Workflows for devops-infra
 
-This directory contains centralized workflows that can be called from any repository in the devops-infra organization. Reusable workflows live under `templates/actions/workflows/`, while top-level workflows are normal callers for the `.github` repository itself.
+This directory documents reusable workflow architecture in the `.github` meta repository.
 
-## Available Reusable Workflows
+## Profile model
 
-### 1. `templates/actions/workflows/auto-create-pull-request.yml`
-**Purpose:** Automates pull request creation for feature branches  
-**Triggers:** Push to non-master branches  
-**Steps:**
-- Runs linters (optional)
-- Builds and pushes Docker image with multi-arch support
-- Inspects image
-- Creates pull request with template
+Reusable callers exist for four profiles:
 
-**Inputs:**
-- `runs-on` (default: `ubuntu-24.04-arm`)
-- `task-version` (default: `3.x`)
-- `enable-docker` (default: `true`)
-- `enable-lint` (default: `true`)
-- `docker-platforms` (default: `amd64,arm64`)
+- `templates/actions/workflows/*`
+- `templates/dockerized/workflows/*`
+- `templates/other/workflows/*`
+- `templates/static/workflows/*`
 
-**Required Secrets:** `DOCKER_TOKEN`, `GITHUB_TOKEN`
+`actions` contains base implementations. `dockerized`, `other`, and `static` wrap base workflows with profile-specific defaults.
 
----
+## Required workflows per repository
 
-### 2. `templates/actions/workflows/auto-create-release.yml`
-**Purpose:** Creates releases when release branches are merged  
-**Triggers:** PR merge from `release/**` branches  
-**Steps:**
-- Tags release
-- Builds and pushes production Docker images
-- Creates GitHub release with notes
-- Updates Docker Hub description
+Each in-scope repository should expose these caller workflows in `.github/workflows/`:
 
-**Inputs:**
-- `runs-on` (default: `ubuntu-24.04-arm`)
-- `task-version` (default: `3.x`)
-- `docker-platforms` (default: `amd64,arm64`)
-- `version-suffix` (default: `''`)
-- `update-dockerhub-description` (default: `true`)
+1. `auto-create-pull-request.yml`
+2. `cron-check-dependencies.yml`
+3. `manual-update-version.yml`
+4. `manual-sync-common-files.yml` (recommended)
 
-**Required Secrets:** `DOCKER_TOKEN`, `GITHUB_TOKEN`, `DOCKER_USERNAME` (optional)
+Static profile repositories should also expose:
 
-**Outputs:** `version` - The created release version
+5. `deploy-pages.yml` (publish `site/` to GitHub Pages)
 
----
+## Workflow versioning policy
 
-### 3. `templates/actions/workflows/cron-check-dependencies.yml`
-**Purpose:** Scheduled dependency testing  
-**Triggers:** Cron schedule (e.g., weekly)  
-**Steps:**
-- Runs linters
-- Builds test image to verify dependencies still work
-- Inspects image
+- Reusable workflows must be referenced with version tags (for example `@v1`).
+- Do not reference reusable workflows with `@master`.
+- Update callers to newer tags through migration PRs.
 
-**Inputs:**
-- `runs-on` (default: `ubuntu-24.04-arm`)
-- `task-version` (default: `3.x`)
-- `docker-platforms` (default: `amd64,arm64`)
-
-**Required Secrets:** `DOCKER_TOKEN`, `GITHUB_TOKEN`
-
----
-
-### 4. `templates/actions/workflows/manual-update-version.yml`
-**Purpose:** Manual version bump workflow  
-**Triggers:** Manual workflow dispatch  
-**Steps:**
-- Bumps version (patch/minor/major) or sets explicit version
-- Creates release branch
-- Creates pull request
-
-**Inputs:**
-- `runs-on` (default: `ubuntu-24.04-arm`)
-- `task-version` (default: `3.x`)
-- `bump-type` (required: `patch`, `minor`, `major`, `set`)
-- `explicit-version` (optional, for `type=set`)
-
-**Required Secrets:** `GITHUB_TOKEN`
-
-**Outputs:** `version` - The updated version
-
----
-
-### 5. `templates/actions/workflows/manual-sync-common-files.yml`
-**Purpose:** Sync common files from template sources  
-**Triggers:** Manual workflow dispatch  
-**Steps:**
-- Syncs specified file types (configs, ignores, taskfiles)
-- Taskfiles are sourced from `devops-infra/.github/templates/actions/taskfiles`
-- Configs/ignores are sourced from `devops-infra/.github/templates/actions/configs`
-- Creates branch with changes
-- Creates pull request
-
-**Inputs:**
-- `runs-on` (default: `ubuntu-24.04-arm`)
-- `task-version` (default: `3.x`)
-- `sync-type` (required: `all`, `configs`, `ignores`, `taskfiles`)
-
-**Required Secrets:** `GITHUB_TOKEN`
-
----
-
-## Usage in Individual Repositories
-
-To use these workflows in your repository, create minimal caller workflows in `.github/workflows/` that reference the reusable ones under `templates/actions/workflows/`.
-
-Archived repositories (e.g., `docker-okta-aws-sso`) are excluded from syncing and automation.
-
-### Example: Auto-create PR workflow
+Example:
 
 ```yaml
-name: (Auto) Create Pull Request
-
-on:
-  push:
-    branches-ignore:
-      - master
-      - dependabot/**
-
-permissions:
-  contents: read
-  packages: write
-  pull-requests: write
-
 jobs:
-  call-auto-create-pull-request:
-    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
-    with:
-      runs-on: ubuntu-24.04-arm
-      enable-docker: true
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  call:
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
 ```
 
-Caller workflow examples live in this directory (`.github/.github/workflows/*.yml`). Reusable definitions live in [`templates/actions/workflows/`](../../templates/actions/workflows/).
+## Weekly health workflow behavior
 
----
+`cron-check-dependencies` is the aggregated weekly check. It combines:
 
-## Migration Guide
+- dependency checks
+- baseline validation
+- workflow linting
+- stale branch and stale issue detection
 
-### Step 1: Push centralized workflows to .github repository
-Ensure all workflows in this directory are committed and pushed to the `master` branch of `devops-infra/.github`.
+The workflow creates or updates one repository issue with findings and auto-closes it when clean.
 
-### Step 2: Update individual repositories
-For each repository (e.g., `action-commit-push`, `docker-terragrunt`):
+## Manual version update behavior
 
-1. **Backup existing workflows** (optional)
-   ```bash
-   cp -r .github/workflows .github/workflows.backup
-   ```
+`manual-update-version` supports two modes:
 
-2. **Replace workflows with callers**
-   - Copy examples from `templates/actions/workflows/`
-   - Adjust inputs if needed (e.g., disable Docker for non-Docker repos)
-   - Commit and push
+- bump or set version (and open release PR)
+- build/push only without version bump (`build_only: true`)
 
-3. **Test the workflow**
-   - Create a test branch
-   - Push changes to trigger the PR workflow
-   - Verify it works correctly
+## Required action usage
 
-### Step 3: Clean up
-Once verified, remove old workflow files and the backup.
+Reusable workflows that create commits/PRs use:
 
----
+- `devops-infra/action-commit-push`
+- `devops-infra/action-pull-request`
 
-## Benefits
+## Migration notes
 
-✅ **Single source of truth** - Update workflow logic once, applies everywhere  
-✅ **Reduced duplication** - Dozens of files reduced to ~5 centralized workflows  
-✅ **Easier maintenance** - Fix bugs or add features in one place  
-✅ **Consistency** - All repos use identical CI/CD patterns  
-✅ **Flexibility** - Inputs allow customization per repository  
-
----
-
-## Requirements
-
-All repositories must have:
-- `Taskfile.yml` with standard tasks: `lint`, `docker:cmds`, `docker:push`, `docker:push:inspect`, `git:get-pr-template`
-- Standard branch naming: `release/**` for releases
-- Secrets configured: `DOCKER_TOKEN`, `GITHUB_TOKEN`, optionally `DOCKER_USERNAME`
-
----
-
-## Troubleshooting
-
-### "Workflow not found" errors
-- Ensure reusable workflows are pushed to the `master` branch of `devops-infra/.github`
-- Verify the path: `devops-infra/.github/templates/actions/workflows/<workflow>.yml@master`
-
-### Permission errors
-- Ensure caller workflow has required `permissions` section
-- Verify secrets are configured in repository settings
-
-### Task errors
-- Ensure your `Taskfile.yml` includes all required tasks
-- Check task names match exactly (case-sensitive)
-
----
-
-## Updating Workflows
-
-When you need to update workflow logic:
-
-1. Edit the reusable workflow in `templates/actions/workflows/`
-2. Commit and push to `.github` repository
-3. Changes automatically apply to all repositories using it
-4. No need to update individual repositories (unless changing inputs)
-
----
-
-## Future Enhancements
-
-- [ ] Add centralized workflow for Python packages (velez)
-- [ ] Add centralized workflow for Makefile-based Docker repos (active ones)
-- [ ] Implement workflow versioning with tags instead of `@master`
-- [ ] Add status badges to repositories
-- [ ] Create workflow for automated sync of these workflows to all repos
+- Finalize reusable templates in `.github` first.
+- Then roll out profile-specific caller workflows to each repository.
+- Validate that caller files reference `@v1` and that Taskfile tasks exist.

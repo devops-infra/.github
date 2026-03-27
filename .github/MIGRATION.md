@@ -18,6 +18,16 @@ Five centralized workflows:
 | `templates/actions/workflows/manual-update-version.yml`    | Manual version bumps                    | `manual-update-version.yml`    |
 | `templates/actions/workflows/manual-sync-common-files.yml` | Sync common files from template sources | `manual-sync-common-files.yml` |
 
+Additional profile wrappers are available in:
+
+- `templates/dockerized/workflows/*`
+- `templates/other/workflows/*`
+- `templates/static/workflows/*`
+
+Static repositories may additionally use:
+
+- `templates/static/workflows/deploy-pages.yml`
+
 ### 2. Example Caller Workflows (`.github/.github/workflows/`)
 
 Ready-to-use caller workflows showing how repositories call the centralized workflows:
@@ -176,7 +186,7 @@ rm -rf .github/workflows.backup*
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
     with:
       enable-docker: false
       enable-lint: true
@@ -186,7 +196,7 @@ jobs:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
     with:
       runs-on: ubuntu-latest
 ```
@@ -195,7 +205,7 @@ jobs:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
     with:
       docker-platforms: amd64
 ```

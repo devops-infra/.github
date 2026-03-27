@@ -15,13 +15,38 @@ on:
         description: 'Docker platforms to build for'
         type: string
         default: 'amd64,arm64'
+      enable-docker:
+        description: 'Enable docker build/push validation'
+        type: boolean
+        default: true
+      enable-lint:
+        description: 'Run lint checks during weekly scan'
+        type: boolean
+        default: true
+      stale-days:
+        description: 'Mark branches/issues stale after this many days'
+        type: number
+        default: 60
+      issue-title:
+        description: 'Issue title for weekly report'
+        type: string
+        default: '(Weekly) Repository health report'
+      issue-labels:
+        description: 'Comma-separated labels for weekly report issue'
+        type: string
+        default: 'automation,dependencies'
     secrets:
       DOCKER_TOKEN:
-        required: true
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
 
 jobs:
   dependency-check:
-    name: Test dependencies
+    name: Weekly health scan
     runs-on: ${{ inputs.runs-on }}
     steps:
       - name: Checkout
@@ -35,26 +60,232 @@ jobs:
         with:
           version: ${{ inputs.task-version }}
 
+      - name: Prepare report workspace
+        run: |
+          mkdir -p .tmp
+          : > .tmp/findings.md
+          {
+            echo "## Weekly Health Report"
+            echo ""
+            echo "- Repository: ${{ github.repository }}"
+            echo "- Ref: ${{ github.ref_name }}"
+            echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "- Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo ""
+            echo "### Findings"
+          } > .tmp/report.md
+
+      - name: Run lint
+        id: lint
+        if: inputs.enable-lint
+        continue-on-error: true
+        run: task lint
+
+      - name: Record lint findings
+        if: inputs.enable-lint && steps.lint.outcome != 'success'
+        run: |
+          echo "- [lint] \`task lint\` failed" >> .tmp/findings.md
+
+      - name: Validate baseline
+        id: baseline
+        continue-on-error: true
+        run: |
+          set -eu
+          [ -f Taskfile.yml ] || { echo "Taskfile.yml missing"; exit 1; }
+          [ -f .github/workflows/auto-create-pull-request.yml ] || { echo "Missing workflow: auto-create-pull-request.yml"; exit 1; }
+          [ -f .github/workflows/cron-check-dependencies.yml ] || { echo "Missing workflow: cron-check-dependencies.yml"; exit 1; }
+          [ -f .github/workflows/manual-update-version.yml ] || { echo "Missing workflow: manual-update-version.yml"; exit 1; }
+          if grep -R -n -E "uses:[[:space:]]+.+@master" .github/workflows >/dev/null 2>&1; then
+            echo "Found @master workflow references in caller workflows"
+            exit 1
+          fi
+
+      - name: Record baseline findings
+        if: steps.baseline.outcome != 'success'
+        run: |
+          echo "- [baseline] Required files are missing or caller workflows still reference \`@master\`" >> .tmp/findings.md
+
+      - name: Run dependency checks
+        id: deps
+        continue-on-error: true
+        run: |
+          set +e
+          if task --list | grep -q "deps:check"; then
+            task deps:check
+            rc=$?
+          elif task --list | grep -q "update-versions"; then
+            task update-versions
+            rc=$?
+          else
+            echo "No dedicated dependency-check task found"
+            rc=3
+          fi
+          set -e
+          exit $rc
+
+      - name: Record dependency findings
+        if: steps.deps.outcome != 'success'
+        run: |
+          echo "- [dependencies] Dependency check reported updates or failed" >> .tmp/findings.md
+
       - name: Install Docker Buildx
+        if: inputs.enable-docker
         uses: docker/setup-buildx-action@v3
 
       - name: Install QEMU
+        if: inputs.enable-docker
         uses: docker/setup-qemu-action@v3
         with:
           image: tonistiigi/binfmt:latest
           platforms: ${{ inputs.docker-platforms }}
 
-      - name: Run linters
-        run: task lint
-
-      - name: Get Docker commands
-        run: task docker:cmds
-
-      - name: Build and push test image
+      - name: Validate docker build and push
+        id: docker
+        if: inputs.enable-docker
+        continue-on-error: true
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
-        run: task docker:push
+        run: |
+          task docker:cmds
+          task docker:push
+          task docker:push:inspect
 
-      - name: Inspect image
-        run: task docker:push:inspect
+      - name: Record docker findings
+        if: inputs.enable-docker && steps.docker.outcome != 'success'
+        run: |
+          echo "- [docker] Docker validation failed (build/push/inspect)" >> .tmp/findings.md
+
+      - name: Detect stale branches and issues
+        id: stale
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const staleDays = Number('${{ inputs.stale-days }}')
+            const staleMs = staleDays * 24 * 60 * 60 * 1000
+            const now = Date.now()
+
+            const staleBranches = []
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              protected: false,
+              per_page: 100,
+            })
+
+            for (const branch of branches) {
+              if (branch.name === 'master' || branch.name === 'main') continue
+              if (branch.name.startsWith('dependabot/')) continue
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: branch.commit.sha,
+              })
+              const commitDate = new Date(commit.data.commit.committer.date).getTime()
+              if (now - commitDate > staleMs) {
+                staleBranches.push(branch.name)
+              }
+            }
+
+            const staleIssues = []
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })
+
+            for (const issue of issues) {
+              if (issue.pull_request) continue
+              const updated = new Date(issue.updated_at).getTime()
+              if (now - updated > staleMs) {
+                staleIssues.push(`#${issue.number}`)
+              }
+            }
+
+            core.setOutput('stale_branch_count', String(staleBranches.length))
+            core.setOutput('stale_issue_count', String(staleIssues.length))
+            core.setOutput('stale_branches', staleBranches.slice(0, 20).join(', '))
+            core.setOutput('stale_issues', staleIssues.slice(0, 20).join(', '))
+
+      - name: Record stale findings
+        if: steps.stale.outputs.stale_branch_count != '0' || steps.stale.outputs.stale_issue_count != '0'
+        run: |
+          if [ "${{ steps.stale.outputs.stale_branch_count }}" != "0" ]; then
+            echo "- [stale-branches] Found ${{ steps.stale.outputs.stale_branch_count }} stale branches: ${{ steps.stale.outputs.stale_branches }}" >> .tmp/findings.md
+          fi
+          if [ "${{ steps.stale.outputs.stale_issue_count }}" != "0" ]; then
+            echo "- [stale-issues] Found ${{ steps.stale.outputs.stale_issue_count }} stale issues: ${{ steps.stale.outputs.stale_issues }}" >> .tmp/findings.md
+          fi
+
+      - name: Finalize report
+        id: report
+        run: |
+          if [ -s .tmp/findings.md ]; then
+            cat .tmp/findings.md >> .tmp/report.md
+            echo "status=issues" >> "$GITHUB_OUTPUT"
+          else
+            echo "- No findings. Repository matches current baseline." >> .tmp/report.md
+            echo "status=clean" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update weekly issue
+        uses: actions/github-script@v8
+        env:
+          ISSUE_TITLE: ${{ inputs.issue-title }}
+          ISSUE_LABELS: ${{ inputs.issue-labels }}
+          REPORT_STATUS: ${{ steps.report.outputs.status }}
+        with:
+          script: |
+            const fs = require('fs')
+            const title = process.env.ISSUE_TITLE
+            const labels = process.env.ISSUE_LABELS.split(',').map(v => v.trim()).filter(Boolean)
+            const status = process.env.REPORT_STATUS
+            const body = fs.readFileSync('.tmp/report.md', 'utf8')
+
+            const repoLabels = await github.paginate(github.rest.issues.listLabelsForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100,
+            })
+            const repoLabelSet = new Set(repoLabels.map(l => l.name))
+            const safeLabels = labels.filter(l => repoLabelSet.has(l))
+
+            const openIssues = await github.paginate(github.rest.issues.listForRepo, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100,
+            })
+            const existing = openIssues.find(i => i.title === title)
+
+            if (status === 'clean') {
+              if (existing) {
+                await github.rest.issues.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: existing.number,
+                  body,
+                  state: 'closed',
+                  state_reason: 'completed',
+                })
+              }
+              return
+            }
+
+            if (existing) {
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.number,
+                body,
+              })
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: safeLabels,
+              })
+            }

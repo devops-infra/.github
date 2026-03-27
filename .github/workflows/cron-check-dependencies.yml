@@ -1,17 +1,21 @@
-name: (Cron) Check dependencies
+name: (Cron) Weekly repository health
 
-on: []
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
+  issues: write
+  pull-requests: read
 
 jobs:
-  call-dependency-check:
-    uses: devops-infra/.github/templates/other/workflows/cron-check-dependencies.yml@master
+  call-weekly-health-check:
+    uses: devops-infra/.github/templates/other/workflows/cron-check-dependencies.yml@v1
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
+      enable-docker: false
+      enable-lint: true
       docker-platforms: amd64,arm64
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

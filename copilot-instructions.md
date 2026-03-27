@@ -4,7 +4,7 @@ This is a local working directory containing checked-out repositories from the [
 
 ## Repository Structure
 
-The directory contains three main categories of repositories:
+The directory contains four main categories of repositories:
 
 ### GitHub Actions (action-*)
 Docker-based GitHub Actions for DevOps automation:
@@ -27,6 +27,9 @@ Containerized tools for CI/CD pipelines:
 - `template-action` - Template for creating new GitHub Actions
 - `template-repository` - Template for new repositories
 - `velez` - Python CLI tool for Terragrunt/Terraform automation (formerly pygrunt)
+
+### Static Sites
+- Repositories using static-site baseline with GitHub Pages deploy workflow (`templates/static/*`)
 
 ### Meta Repository
 - `.github/` - Organization-wide GitHub settings, templates, and workflows
@@ -83,12 +86,15 @@ rm -rf dist build *.egg-info
 The `.github` repository serves as a **meta repository** containing centralized workflows for the entire organization:
 
 ### Available Reusable Workflows
-Located in `templates/actions/workflows/`:
+Located in profile folders under `templates/*/workflows/`:
 - `auto-create-pull-request.yml` - Auto-create PRs for feature branches
 - `auto-create-release.yml` - Create releases from `release/**` branches
-- `cron-check-dependencies.yml` - Scheduled dependency testing
-- `manual-update-version.yml` - Manual version bumps
+- `cron-check-dependencies.yml` - Scheduled aggregated repository health check
+- `manual-update-version.yml` - Manual version bumps or build-only mode
 - `manual-sync-common-files.yml` - Sync common files from `.github` (taskfiles: `templates/actions/taskfiles`, configs: `templates/actions/configs`)
+
+Static profile repositories also use:
+- `deploy-pages.yml` - Publish `site/` to GitHub Pages
 
 ### Using Reusable Workflows
 Individual repositories call these workflows instead of duplicating logic:
@@ -96,7 +102,7 @@ Individual repositories call these workflows instead of duplicating logic:
 ```yaml
 jobs:
   call-workflow:
-    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@master
+    uses: devops-infra/.github/templates/actions/workflows/auto-create-pull-request.yml@v1
     with:
       runs-on: ubuntu-24.04-arm
       enable-docker: true
@@ -108,9 +114,15 @@ jobs:
 See `.github/.github/workflows/` for caller examples and `.github/.github/workflows/README.md` for detailed documentation.
 
 ### Workflow Requirements
-All repositories using these workflows must have:
-- `Taskfile.yml` with tasks: `lint`, `docker:cmds`, `docker:push`, `docker:push:inspect`, `git:get-pr-template`, `git:set-config`, `version:*`
-- Configured secrets: `DOCKER_TOKEN`, `GITHUB_TOKEN`, optionally `DOCKER_USERNAME`
+All repositories using these workflows must have profile-appropriate Taskfiles with:
+- `lint`, `git:get-pr-template`, `git:set-config`, `version:*`
+- Docker tasks (`docker:cmds`, `docker:push`, `docker:push:inspect`) for action/dockerized profiles only
+- Static repositories should also include `deploy-pages.yml` for GitHub Pages deployment
+
+Configured secrets vary by profile:
+- `GITHUB_TOKEN` (required)
+- `DOCKER_TOKEN` (required for docker build/push flows)
+- `DOCKER_USERNAME` (optional, for Docker Hub description update)
 
 ## Key Conventions
 
@@ -146,9 +158,9 @@ Per `.github/CONTRIBUTING.md`:
 Repositories use [Task](https://taskfile.dev) for build automation. Templates are split by category in `templates/`:
 
 - **actions/**: `Taskfile.yml`, `Taskfile.cicd.yml`, `Taskfile.docker.yml`, `Taskfile.variables.yml` (for action-* repos and template-action)
-- **dockerized/**: `Taskfile.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for docker-terragrunt-style repos)
-- **static/**: `Taskfile.yml` (for GitHub Pages/static sites)
-- **other/**: `Taskfile.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for non-Docker repos)
+- **dockerized/**: `Taskfile.yml`, `Taskfile.cicd.yml`, `Taskfile.docker.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for docker-* repos)
+- **static/**: `Taskfile.yml`, `Taskfile.cicd.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for GitHub Pages/static sites)
+- **other/**: `Taskfile.yml`, `Taskfile.cicd.yml`, `Taskfile.scripts.yml`, `Taskfile.variables.yml` (for non-Docker repos)
 
 Common tasks include:
 - `lint` (actionlint/yamllint and hadolint/shellcheck where applicable)

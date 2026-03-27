@@ -7,7 +7,6 @@ includes:
   scripts: ./Taskfile.scripts.yml
   docker:
     taskfile: ./Taskfile.docker.yml
-    flatten: true
   cicd:
     taskfile: ./Taskfile.cicd.yml
 
@@ -66,3 +65,33 @@ tasks:
     desc: Set git user config
     cmds:
       - task: cicd:git:set-config
+
+  docker:login:
+    desc: Login to hub.docker.com and ghcr.io
+    cmds:
+      - task: docker:docker:login
+
+  docker:cmds:
+    desc: Show full docker build command
+    cmds:
+      - task: docker:docker:cmds
+
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - task: docker:docker:build
+
+  docker:build:inspect:
+    desc: Inspect built Docker image
+    cmds:
+      - task: docker:docker:build:inspect
+
+  docker:push:
+    desc: Build and push Docker images
+    cmds:
+      - task: docker:docker:push
+
+  docker:push:inspect:
+    desc: Inspect built Docker image
+    cmds:
+      - task: docker:docker:push:inspect

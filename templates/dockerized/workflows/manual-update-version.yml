@@ -45,6 +45,8 @@ jobs:
       bump-type: ${{ inputs.bump-type }}
       explicit-version: ${{ inputs.explicit-version }}
       build-and-push-only: ${{ inputs.build-and-push-only }}
+      enable-docker: true
+      profile: dockerized
       docker-platforms: ${{ inputs.docker-platforms }}
     secrets:
       DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

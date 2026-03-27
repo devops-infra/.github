@@ -1,4 +1,4 @@
-name: (Manual) Sync Common Files
+name: (Reusable Other) Auto Create Pull Request
 
 on:
   workflow_call:
@@ -11,16 +11,12 @@ on:
         description: Task version to install
         type: string
         default: 3.x
-      sync-type:
-        description: File type to sync (all, configs, ignores, taskfiles)
-        type: string
-        required: true
 
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-manual-sync-common-files.yml@v1
+    uses: ./.github/workflows/reusable-actions-auto-create-pull-request.yml
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      sync-type: ${{ inputs.sync-type }}
-      template-profile: static
+      enable-docker: false
+      enable-lint: true

@@ -1,0 +1,120 @@
+name: (Reusable Actions) Auto Create Pull Request
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner to use
+        type: string
+        default: ubuntu-24.04-arm
+      task-version:
+        description: Task version to install
+        type: string
+        default: 3.x
+      enable-docker:
+        description: Enable docker build and push steps
+        type: boolean
+        default: true
+      enable-lint:
+        description: Enable lint step
+        type: boolean
+        default: true
+      docker-platforms:
+        description: Docker platforms to build for
+        type: string
+        default: amd64,arm64
+    secrets:
+      DOCKER_TOKEN:
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+jobs:
+  lint:
+    if: inputs.enable-lint
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+
+      - name: Run linters
+        run: task lint
+
+  docker:
+    if: inputs.enable-docker
+    runs-on: ${{ inputs.runs-on }}
+    needs: [lint]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+
+      - name: Install Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Install QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: ${{ inputs.docker-platforms }}
+
+      - name: Build and push image
+        env:
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION_SUFFIX: '-test'
+        run: task docker:push
+
+      - name: Inspect image
+        env:
+          VERSION_SUFFIX: '-test'
+        run: task docker:push:inspect
+
+  pull-request:
+    runs-on: ${{ inputs.runs-on }}
+    needs: [lint, docker]
+    if: always() && !cancelled() && (needs.lint.result == 'success' || needs.lint.result == 'skipped') && (needs.docker.result == 'success' || needs.docker.result == 'skipped')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+
+      - name: Get template
+        env:
+          VERSION_SUFFIX: ''
+        run: |
+          task git:set-config
+          task git:get-pr-template
+
+      - name: Create Pull Request
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          assignee: ${{ github.actor }}
+          template: .tmp/PULL_REQUEST_TEMPLATE.md
+          get_diff: true

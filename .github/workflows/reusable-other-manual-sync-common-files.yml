@@ -1,4 +1,4 @@
-name: (Manual) Sync Common Files
+name: (Reusable Other) Manual Sync Common Files
 
 on:
   workflow_call:
@@ -15,12 +15,16 @@ on:
         description: File type to sync (all, configs, ignores, taskfiles)
         type: string
         required: true
+      template-profile:
+        description: Template profile to use for Taskfile sync (actions, dockerized, other, static)
+        type: string
+        default: other
 
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-manual-sync-common-files.yml@v1
+    uses: ./.github/workflows/reusable-actions-manual-sync-common-files.yml
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
       sync-type: ${{ inputs.sync-type }}
-      template-profile: static
+      template-profile: ${{ inputs.template-profile }}

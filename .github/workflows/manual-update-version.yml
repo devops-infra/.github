@@ -30,7 +30,7 @@ permissions:
 
 jobs:
   call-version-update:
-    uses: devops-infra/.github/templates/other/workflows/manual-update-version.yml@v1
+    uses: ./.github/workflows/reusable-other-manual-update-version.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x

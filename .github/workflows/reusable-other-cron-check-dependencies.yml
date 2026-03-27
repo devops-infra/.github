@@ -1,4 +1,4 @@
-name: (Cron) Weekly repository health
+name: (Reusable Other) Cron Check Dependencies
 
 on:
   workflow_call:
@@ -11,10 +11,6 @@ on:
         description: Task version to install
         type: string
         default: 3.x
-      docker-platforms:
-        description: Docker platforms to build for
-        type: string
-        default: amd64,arm64
       stale-days:
         description: Mark branches/issues stale after this many days
         type: number
@@ -27,21 +23,15 @@ on:
         description: Comma-separated labels for weekly report issue
         type: string
         default: automation,dependencies
-    secrets:
-      DOCKER_TOKEN:
-        required: true
 
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-actions-cron-check-dependencies.yml@v1
+    uses: ./.github/workflows/reusable-actions-cron-check-dependencies.yml
     with:
       runs-on: ${{ inputs.runs-on }}
       task-version: ${{ inputs.task-version }}
-      enable-docker: true
+      enable-docker: false
       enable-lint: true
       stale-days: ${{ inputs.stale-days }}
       issue-title: ${{ inputs.issue-title }}
       issue-labels: ${{ inputs.issue-labels }}
-      docker-platforms: ${{ inputs.docker-platforms }}
-    secrets:
-      DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}

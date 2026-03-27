@@ -6,8 +6,10 @@ includes:
   variables: ./Taskfile.variables.yml
   cicd:
     taskfile: ./Taskfile.cicd.yml
+    flatten: true
   docker:
     taskfile: ./Taskfile.docker.yml
+    flatten: true
 
 
 tasks:
@@ -28,128 +30,3 @@ tasks:
         echo "  GHRC_NAME={{.GHRC_NAME}}  GITHUB_USERNAME={{.GITHUB_USERNAME}}"
         echo "  LAST_RELEASE={{.LAST_RELEASE}}"  VERSION={{.VERSION}}   VERSION_FULL={{.VERSION_FULL}}
         echo "  BRANCH={{.GIT_BRANCH}}  GIT_SHORT_SHA={{.GIT_SHORT_SHA}}"  GIT_SHA={{.GIT_SHA}}
-
-  pre-commit:
-    desc: Run all pre-commit hooks
-    cmds:
-      - task: cicd:pre-commit
-
-  pre-commit:install:
-    desc: Install pre-commit hooks
-    cmds:
-      - task: cicd:pre-commit:install
-
-  lint:
-    desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
-    cmds:
-      - task: cicd:lint
-
-  lint:actionlint:
-    desc: Lint GitHub Actions workflows with actionlint
-    cmds:
-      - task: cicd:lint:actionlint
-
-  lint:hadolint:
-    desc: Lint Dockerfile with hadolint
-    cmds:
-      - task: cicd:lint:hadolint
-
-  lint:shellcheck:
-    desc: Lint shell scripts with shellcheck
-    cmds:
-      - task: cicd:lint:shellcheck
-
-  lint:yamllint:
-    desc: Lint YAML files with yamllint
-    cmds:
-      - task: cicd:lint:yamllint
-
-  version:get:
-    desc: Get current version
-    cmds:
-      - task: cicd:version:get
-
-  version:set:
-    desc: Update version in repository files
-    cmds:
-      - task: cicd:version:set VERSION='{{.VERSION}}'
-
-  version:update:patch:
-    desc: Increment patch version
-    cmds:
-      - task: cicd:version:update:patch
-
-  version:update:minor:
-    desc: Increment minor version
-    cmds:
-      - task: cicd:version:update:minor
-
-  version:update:major:
-    desc: Increment major version
-    cmds:
-      - task: cicd:version:update:major
-
-  version:tag-release:
-    desc: Create set of git tags
-    cmds:
-      - task: cicd:version:tag-release
-
-  git:get-pr-template:
-    desc: Get pull request template
-    cmds:
-      - task: cicd:git:get-pr-template
-
-  git:set-config:
-    desc: Set git user config
-    cmds:
-      - task: cicd:git:set-config
-
-  sync:all:
-    desc: Sync all common files
-    cmds:
-      - task: cicd:sync:all
-
-  sync:configs:
-    desc: Sync configuration files with devops-infra/.github
-    cmds:
-      - task: cicd:sync:configs
-
-  sync:ignores:
-    desc: Sync ignore files with devops-infra/.github
-    cmds:
-      - task: cicd:sync:ignores
-
-  sync:taskfiles:
-    desc: Sync Taskfiles with devops-infra/.github
-    cmds:
-      - task: cicd:sync:taskfiles
-
-  docker:login:
-    desc: Login to hub.docker.com and ghcr.io
-    cmds:
-      - task: docker:docker:login
-
-  docker:cmds:
-    desc: Show full docker build command
-    cmds:
-      - task: docker:docker:cmds
-
-  docker:build:
-    desc: Build Docker image
-    cmds:
-      - task: docker:docker:build
-
-  docker:build:inspect:
-    desc: Inspect built Docker image
-    cmds:
-      - task: docker:docker:build:inspect
-
-  docker:push:
-    desc: Build and push Docker images
-    cmds:
-      - task: docker:docker:push
-
-  docker:push:inspect:
-    desc: Inspect built Docker image
-    cmds:
-      - task: docker:docker:push:inspect

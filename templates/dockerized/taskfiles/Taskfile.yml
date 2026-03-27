@@ -7,8 +7,10 @@ includes:
   scripts: ./Taskfile.scripts.yml
   docker:
     taskfile: ./Taskfile.docker.yml
+    flatten: true
   cicd:
     taskfile: ./Taskfile.cicd.yml
+    flatten: true
 
 tasks:
   default:
@@ -20,78 +22,3 @@ tasks:
     desc: Detailed help
     cmds:
       - task: scripts:help
-
-  pre-commit:
-    desc: Run all pre-commit hooks
-    cmds:
-      - task: cicd:pre-commit
-
-  pre-commit:install:
-    desc: Install pre-commit hooks
-    cmds:
-      - task: cicd:pre-commit:install
-
-  lint:
-    desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
-    cmds:
-      - task: cicd:lint
-
-  lint:actionlint:
-    desc: Lint GitHub Actions workflows with actionlint
-    cmds:
-      - task: cicd:lint:actionlint
-
-  lint:hadolint:
-    desc: Lint Dockerfile with hadolint
-    cmds:
-      - task: cicd:lint:hadolint
-
-  lint:shellcheck:
-    desc: Lint shell scripts with shellcheck
-    cmds:
-      - task: cicd:lint:shellcheck
-
-  lint:yamllint:
-    desc: Lint YAML files with yamllint
-    cmds:
-      - task: cicd:lint:yamllint
-
-  git:get-pr-template:
-    desc: Get pull request template
-    cmds:
-      - task: cicd:git:get-pr-template
-
-  git:set-config:
-    desc: Set git user config
-    cmds:
-      - task: cicd:git:set-config
-
-  docker:login:
-    desc: Login to hub.docker.com and ghcr.io
-    cmds:
-      - task: docker:docker:login
-
-  docker:cmds:
-    desc: Show full docker build command
-    cmds:
-      - task: docker:docker:cmds
-
-  docker:build:
-    desc: Build Docker image
-    cmds:
-      - task: docker:docker:build
-
-  docker:build:inspect:
-    desc: Inspect built Docker image
-    cmds:
-      - task: docker:docker:build:inspect
-
-  docker:push:
-    desc: Build and push Docker images
-    cmds:
-      - task: docker:docker:push
-
-  docker:push:inspect:
-    desc: Inspect built Docker image
-    cmds:
-      - task: docker:docker:push:inspect

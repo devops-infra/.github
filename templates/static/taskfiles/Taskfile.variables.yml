@@ -35,7 +35,12 @@ vars:
       if [ -n "${VERSION_OVERRIDE:-}" ]; then
         echo "${VERSION_OVERRIDE}"
       else
-        echo "{{.VERSION_FROM_FILE}}"
+        from_file="{{.VERSION_FROM_FILE}}"
+        if [ -n "$from_file" ]; then
+          echo "$from_file"
+        else
+          git tag --sort=-v:refname 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1
+        fi
       fi
   VERSION_NO_V:
     sh: v="{{.VERSION}}"; echo "${v#v}"

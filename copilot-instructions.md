@@ -88,7 +88,7 @@ The `.github` repository serves as a **meta repository** containing centralized 
 ### Available Reusable Workflows
 Located in profile folders under `templates/*/workflows/`:
 - `auto-create-pull-request.yml` - Auto-create PRs for feature branches
-- `auto-create-release.yml` - Create releases from `release/**` branches
+- `manual-create-release.yml` - Create release tags and publish GitHub release
 - `cron-check-dependencies.yml` - Scheduled aggregated repository health check
 - `manual-update-version.yml` - Manual version bumps or build-only mode
 - `manual-sync-common-files.yml` - Sync common files from `.github` (taskfiles: `templates/actions/taskfiles`, configs: `templates/actions/configs`)

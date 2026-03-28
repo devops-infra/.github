@@ -13,7 +13,7 @@ Five centralized workflows:
 | Workflow                                | Purpose                                 | Replaces                       |
 |-----------------------------------------|-----------------------------------------|--------------------------------|
 | `templates/actions/workflows/auto-create-pull-request.yml` | Auto-create PRs for feature branches    | `auto-create-pull-request.yml` |
-| `templates/actions/workflows/auto-create-release.yml`      | Create releases from merged PRs         | `auto-create-release.yml`      |
+| `templates/actions/workflows/manual-create-release.yml`    | Create release tags and publish release | `manual-create-release.yml`    |
 | `templates/actions/workflows/cron-check-dependencies.yml`  | Scheduled dependency testing            | `cron-check-dependencies.yml`  |
 | `templates/actions/workflows/manual-update-version.yml`    | Manual version bumps                    | `manual-update-version.yml`    |
 | `templates/actions/workflows/manual-sync-common-files.yml` | Sync common files from template sources | `manual-sync-common-files.yml` |
@@ -92,7 +92,7 @@ Choose one of these approaches:
    cp -r .github/workflows .github/workflows.backup
    
    # Copy caller workflows
-   cp ../.github/.github/workflows/{auto-create-pull-request.yml,auto-create-release.yml,cron-check-dependencies.yml,manual-update-version.yml,manual-sync-common-files.yml} .github/workflows/
+   cp ../.github/.github/workflows/{auto-create-pull-request.yml,manual-create-release.yml,cron-check-dependencies.yml,manual-update-version.yml,manual-sync-common-files.yml} .github/workflows/
    ```
 
 3. **Remove old workflows:**

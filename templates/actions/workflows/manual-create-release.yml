@@ -1,30 +1,26 @@
-name: (Auto) Create release
-
-
-# TODO: take from action-commit-push
-
+name: (Manual) Create release
 
 on:
   workflow_call:
     inputs:
       runs-on:
-        description: 'Runner to use'
+        description: Runner to use
         type: string
-        default: 'ubuntu-24.04-arm'
+        default: ubuntu-24.04-arm
       task-version:
-        description: 'Task version to install'
+        description: Task version to install
         type: string
-        default: '3.x'
+        default: 3.x
       docker-platforms:
-        description: 'Docker platforms to build for'
+        description: Docker platforms to build for
         type: string
-        default: 'amd64,arm64'
+        default: amd64,arm64
       version-suffix:
-        description: 'Version suffix for Docker tags'
+        description: Version suffix for Docker tags
         type: string
         default: ''
       update-dockerhub-description:
-        description: 'Update Docker Hub description from repository'
+        description: Update Docker Hub description from repository
         type: boolean
         default: true
     secrets:
@@ -34,7 +30,7 @@ on:
         required: false
     outputs:
       version:
-        description: 'Released version'
+        description: Released version
         value: ${{ jobs.release.outputs.version }}
 
 permissions:

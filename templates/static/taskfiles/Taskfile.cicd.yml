@@ -46,7 +46,7 @@ tasks:
       - task scripts:version:get
 
   version:set:
-    desc: Update .version file
+    desc: Validate version
     cmds:
       - task scripts:version:set VERSION='{{.VERSION}}'
 
@@ -82,9 +82,6 @@ tasks:
         }
 
         current="$(task version:get 2>/dev/null || true)"
-        if [ -z "$current" ] && [ -f .version ]; then
-          current="$(tr -d '\n' < .version)"
-        fi
 
         case "$bump_type" in
           set)
@@ -111,7 +108,7 @@ tasks:
             ;;
         esac
 
-        printf "%s" "$next" > .version
+        printf "%s" "$next"
 
   version:tag-release:
     desc: Create set of git tags
@@ -143,9 +140,8 @@ tasks:
         curl -sL {{.CONFIGS_BASE_URL}}/.editorconfig -o ./.editorconfig
         curl -sL {{.CONFIGS_BASE_URL}}/.pre-commit-config.yaml -o ./.pre-commit-config.yaml
         curl -sL {{.CONFIGS_BASE_URL}}/.shellcheckrc -o ./.shellcheckrc
-        curl -sL {{.CONFIGS_BASE_URL}}/.version -o ./.version
         curl -sL {{.CONFIGS_BASE_URL}}/.yamllint.yml -o ./.yamllint.yml
-        git add .editorconfig .pre-commit-config.yaml .shellcheckrc .version .yamllint.yml
+        git add .editorconfig .pre-commit-config.yaml .shellcheckrc .yamllint.yml
 
   sync:ignores:
     desc: Sync ignore files from .github static template

@@ -114,26 +114,13 @@ tasks:
       - echo "{{.VERSION}}"
 
   version:set:
-    desc: Update version in README.md and action.yml
+    desc: Validate version
     cmds:
       - |
         if [ -z "{{.VERSION}}" ]; then
           echo "❌ ERROR: VERSION is empty"
           exit 1
         fi
-      - echo "Updating version file to {{.VERSION}}"
-      - echo "{{.VERSION}}" > .version
-      - echo Updating full version from {{.VERSION_FROM_ACTION_YML}} to {{.VERSION}}
-      - echo Updating minor version from {{.MINOR_FROM_ACTION_YML}} to {{.VERSION_MINOR}}
-      - echo Updating major version from {{.MAJOR_FROM_ACTION_YML}} to {{.VERSION_MAJOR}}
-      - "{{.SED}} -i 's#{{.DOCKER_NAME}}:{{.VERSION_FROM_ACTION_YML}}#{{.DOCKER_NAME}}:{{.VERSION}}#g' action.yml"
-      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.VERSION_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION}}#g' README.md"
-      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.VERSION_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION}}#g' README.md"
-      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.MINOR_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION_MINOR}}#g' README.md"
-      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.MINOR_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION_MINOR}}#g' README.md"
-      - "{{.SED}} -i 's#{{.DOCKER_NAME}}@{{.MAJOR_FROM_ACTION_YML}}#{{.DOCKER_NAME}}@{{.VERSION_MAJOR}}#g' README.md"
-      - "{{.SED}} -i 's#{{.GITHUB_NAME}}@{{.MAJOR_FROM_ACTION_YML}}#{{.GITHUB_NAME}}@{{.VERSION_MAJOR}}#g' README.md"
-
   version:update:patch:
     desc: Increment patch version (e.g., 1.2.3 -> 1.2.4)
     cmds:
@@ -156,7 +143,6 @@ tasks:
         set -eu
         bump_type="${BUMP_TYPE:-patch}"
         input_version="${INPUT_VERSION:-}"
-        profile="${PROFILE:-other}"
 
         normalize_version() {
           candidate="${1#v}"
@@ -166,40 +152,7 @@ tasks:
           printf "v%s" "${candidate}"
         }
 
-        current_version() {
-          current="$(task version:get 2>/dev/null || true)"
-          if [ -z "$current" ] && [ -f .version ]; then
-            current="$(tr -d '\n' < .version)"
-          fi
-          [ -n "$current" ] || return 1
-          normalize_version "$current"
-        }
-
-        if [ "$profile" = "actions" ]; then
-          case "$bump_type" in
-            set)
-              [ -n "$input_version" ] || { echo "Missing version for type=set"; exit 1; }
-              task version:set VERSION_OVERRIDE="$input_version"
-              exit 0
-              ;;
-            patch)
-              task version:update:patch
-              exit 0
-              ;;
-            minor)
-              task version:update:minor
-              exit 0
-              ;;
-            major)
-              task version:update:major
-              exit 0
-              ;;
-            *)
-              echo "Unknown type: $bump_type"
-              exit 1
-              ;;
-          esac
-        fi
+        current="$(task version:get 2>/dev/null || true)"
 
         case "$bump_type" in
           set)
@@ -210,10 +163,8 @@ tasks:
             }
             ;;
           patch|minor|major)
-            current="$(current_version)" || {
-              echo "Current version not found or invalid. Expected vX.Y.Z"
-              exit 1
-            }
+            [ -n "$current" ] || { echo "Current version not found or invalid. Expected vX.Y.Z"; exit 1; }
+            current="$(normalize_version "$current")" || { echo "Current version not found or invalid. Expected vX.Y.Z"; exit 1; }
             no_v="${current#v}"
             IFS='.' read -r major minor patch <<< "$no_v"
             case "$bump_type" in
@@ -228,7 +179,7 @@ tasks:
             ;;
         esac
 
-        printf "%s" "$next" > .version
+        printf "%s" "$next"
 
   version:tag-release:
     desc: Create set of git tags
@@ -330,9 +281,8 @@ tasks:
         curl -sL {{.CONFIGS_BASE_URL}}/.hadolint.yaml -o ./.hadolint.yaml
         curl -sL {{.CONFIGS_BASE_URL}}/.pre-commit-config.yaml -o ./.pre-commit-config.yaml
         curl -sL {{.CONFIGS_BASE_URL}}/.shellcheckrc -o ./.shellcheckrc
-        curl -sL {{.CONFIGS_BASE_URL}}/.version -o ./.version
         curl -sL {{.CONFIGS_BASE_URL}}/.yamllint.yml -o ./.yamllint.yml
-        git add .editorconfig .hadolint.yaml .pre-commit-config.yaml .shellcheckrc .version .yamllint.yml
+        git add .editorconfig .hadolint.yaml .pre-commit-config.yaml .shellcheckrc .yamllint.yml
         echo "✅ Synced configuration files"
 
   sync:ignores:

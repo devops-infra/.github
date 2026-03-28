@@ -22,20 +22,20 @@ vars:
       else
         echo sed
       fi
-  VERSION_FILE: .version
-  VERSION_FROM_FILE:
-    sh: |
-      if [ ! -f "{{.VERSION_FILE}}" ]; then
-        echo ""
-      else
-        tr -d '\n' < "{{.VERSION_FILE}}"
-      fi
+  VERSION_OVERRIDE:
+    sh: echo "${VERSION_OVERRIDE:-}"
   VERSION:
     sh: |
-      if [ -n "${VERSION_OVERRIDE:-}" ]; then
-        echo "${VERSION_OVERRIDE}"
+      override="{{.VERSION_OVERRIDE}}"
+      if [ -n "$override" ]; then
+        echo "$override"
       else
-        echo "{{.VERSION_FROM_FILE}}"
+        latest_tag="$(git tag --sort=-v:refname 2>/dev/null | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)"
+        if [ -n "$latest_tag" ]; then
+          echo "$latest_tag"
+        else
+          echo "v0.0.0"
+        fi
       fi
   VERSION_NO_V:
     sh: v="{{.VERSION}}"; echo "${v#v}"

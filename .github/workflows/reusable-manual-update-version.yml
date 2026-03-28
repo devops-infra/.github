@@ -70,8 +70,8 @@ jobs:
           INPUT_VERSION: ${{ inputs.explicit-version }}
         run: |
           set -eux
-          task version:resolve-next BUMP_TYPE="${BUMP_TYPE}" INPUT_VERSION="${INPUT_VERSION}" PROFILE="${{ inputs.profile }}"
-          echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
+          next="$(task version:resolve-next BUMP_TYPE="${BUMP_TYPE}" INPUT_VERSION="${INPUT_VERSION}" PROFILE="${{ inputs.profile }}")"
+          echo "REL_VERSION=$next" >> "$GITHUB_OUTPUT"
 
       - name: Resolve current version for build-only mode
         id: version-current
@@ -110,7 +110,7 @@ jobs:
 
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
-        run: task version:tag-release
+        run: VERSION_OVERRIDE="${{ steps.version.outputs.REL_VERSION }}" task version:tag-release
 
       - name: Create GitHub release
         if: ${{ !inputs.build-and-push-only }}

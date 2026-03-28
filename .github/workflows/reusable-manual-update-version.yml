@@ -114,7 +114,6 @@ jobs:
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
         run: task version:tag-release
-
       - name: Create GitHub release
         if: ${{ !inputs.build-and-push-only }}
         uses: softprops/action-gh-release@v2

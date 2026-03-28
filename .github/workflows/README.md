@@ -24,7 +24,7 @@ Each in-scope repository should expose these caller workflows in `.github/workfl
 
 Static profile repositories should also expose:
 
-5. `deploy-pages.yml` (publish `site/` to GitHub Pages)
+5. `auto-deploy-pages.yml` (publish `site/` to GitHub Pages)
 
 ## Workflow versioning policy
 

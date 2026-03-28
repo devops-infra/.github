@@ -88,13 +88,12 @@ The `.github` repository serves as a **meta repository** containing centralized 
 ### Available Reusable Workflows
 Located in profile folders under `templates/*/workflows/`:
 - `auto-create-pull-request.yml` - Auto-create PRs for feature branches
-- `manual-create-release.yml` - Create release tags and publish GitHub release
 - `cron-check-dependencies.yml` - Scheduled aggregated repository health check
 - `manual-update-version.yml` - Manual version bumps or build-only mode
 - `manual-sync-common-files.yml` - Sync common files from `.github` (taskfiles: `templates/actions/taskfiles`, configs: `templates/actions/configs`)
 
 Static profile repositories also use:
-- `deploy-pages.yml` - Publish `site/` to GitHub Pages
+- `auto-deploy-pages.yml` - Publish `site/` to GitHub Pages
 
 ### Using Reusable Workflows
 Individual repositories call these workflows instead of duplicating logic:
@@ -117,7 +116,7 @@ See `.github/.github/workflows/` for caller examples and `.github/.github/workfl
 All repositories using these workflows must have profile-appropriate Taskfiles with:
 - `lint`, `git:get-pr-template`, `git:set-config`, `version:*`
 - Docker tasks (`docker:cmds`, `docker:push`, `docker:push:inspect`) for action/dockerized profiles only
-- Static repositories should also include `deploy-pages.yml` for GitHub Pages deployment
+- Static repositories should also include `auto-deploy-pages.yml` for GitHub Pages deployment
 
 Configured secrets vary by profile:
 - `GITHUB_TOKEN` (required)

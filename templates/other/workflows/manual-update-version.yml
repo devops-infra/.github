@@ -1,46 +1,37 @@
 name: (Manual) Update Version
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
-      runs-on:
-        description: Runner to use
-        type: string
-        default: ubuntu-24.04-arm
-      task-version:
-        description: Task version to install
-        type: string
-        default: 3.x
-      bump-type:
-        description: Bump type (patch, minor, major, set)
-        type: string
+      type:
+        description: Bump type
         required: false
         default: patch
-      explicit-version:
-        description: Explicit version when type="set"
-        type: string
-        default: ''
-      build-and-push-only:
-        description: Skip version update and only build/push artifacts
-        type: boolean
-        default: false
-      docker-platforms:
-        description: Docker platforms to build for when build-only mode is enabled
-        type: string
-        default: amd64,arm64
-    outputs:
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+          - set
       version:
-        description: Updated version
-        value: ${{ jobs.call.outputs.version }}
+        description: Explicit version when type="set" (e.g., v1.2.3)
+        required: false
+        default: ''
+      build_only:
+        description: Build and push artifacts without version bump
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: write
 
 jobs:
   call:
     uses: devops-infra/.github/.github/workflows/reusable-manual-update-version.yml@v1
     with:
-      runs-on: ${{ inputs.runs-on }}
-      task-version: ${{ inputs.task-version }}
-      bump-type: ${{ inputs.bump-type }}
-      explicit-version: ${{ inputs.explicit-version }}
-      build-and-push-only: ${{ inputs.build-and-push-only }}
+      bump-type: ${{ inputs.type }}
+      explicit-version: ${{ inputs.version }}
+      build-and-push-only: ${{ inputs.build_only }}
       profile: other
-      docker-platforms: ${{ inputs.docker-platforms }}

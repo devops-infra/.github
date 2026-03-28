@@ -42,12 +42,11 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
   packages: write
 
 jobs:
   update:
-    name: Update version and push release branch
+    name: Resolve version, tag and release
     runs-on: ${{ inputs.runs-on }}
     outputs:
       version: ${{ steps.export-version.outputs.REL_VERSION }}
@@ -107,13 +106,12 @@ jobs:
 
       - name: Set git config
         if: ${{ !inputs.build-and-push-only }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+        run: task git:set-config
 
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
         run: task version:tag-release
+
       - name: Create GitHub release
         if: ${{ !inputs.build-and-push-only }}
         uses: softprops/action-gh-release@v2

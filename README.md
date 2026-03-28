@@ -1,6 +1,7 @@
 # Meta repository for [devops-infra](https://github.com/devops-infra) organization
 
 # Badge swag
+
 [
 ![GitHub repo](https://img.shields.io/badge/GitHub-devops--infra%2F.github-blueviolet.svg?style=plastic&logo=github)
 ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/devops-infra/.github?color=blueviolet&label=Code%20size&style=plastic&logo=github)

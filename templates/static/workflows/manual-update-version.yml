@@ -17,9 +17,16 @@ on:
         description: Explicit version when type="set" (e.g., v1.2.3)
         required: false
         default: ''
+      build_only:
+        description: Build and push artifacts without version bump
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
+  packages: write
+  pull-requests: write
 
 jobs:
   call:
@@ -27,4 +34,6 @@ jobs:
     with:
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
+      build-and-push-only: ${{ inputs.build_only }}
       profile: static
+    secrets: inherit

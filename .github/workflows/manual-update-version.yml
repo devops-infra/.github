@@ -26,6 +26,7 @@ on:
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 jobs:
   call-version-update:
@@ -38,3 +39,4 @@ jobs:
       build-and-push-only: ${{ inputs.build_only }}
       profile: other
       docker-platforms: amd64,arm64
+    secrets: inherit

@@ -9,6 +9,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
+  packages: write
 
 jobs:
   call-weekly-health-check:
@@ -17,3 +18,4 @@ jobs:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x
       profile: other
+    secrets: inherit

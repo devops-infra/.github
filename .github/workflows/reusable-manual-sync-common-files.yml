@@ -67,9 +67,9 @@ jobs:
 
           if [ "${{ inputs.sync-type }}" = "all" ] || [ "${{ inputs.sync-type }}" = "taskfiles" ]; then
             echo "Syncing Taskfiles from devops-infra/.github..."
-            curl -sL "${TASKFILES_BASE_URL}/Taskfile.yml" -o ./Taskfile.yml
-            curl -sL "${TASKFILES_BASE_URL}/Taskfile.cicd.yml" -o ./Taskfile.cicd.yml
-            curl -sL "${TASKFILES_BASE_URL}/Taskfile.variables.yml" -o ./Taskfile.variables.yml
+            curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.yml" -o ./Taskfile.yml
+            curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.cicd.yml" -o ./Taskfile.cicd.yml
+            curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.variables.yml" -o ./Taskfile.variables.yml
             if curl -fsSL "${TASKFILES_BASE_URL}/Taskfile.scripts.yml" -o ./Taskfile.scripts.yml; then
               git add Taskfile.scripts.yml
             fi

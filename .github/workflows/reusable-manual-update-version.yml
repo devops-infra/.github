@@ -69,94 +69,9 @@ jobs:
         env:
           BUMP_TYPE: ${{ inputs.bump-type }}
           INPUT_VERSION: ${{ inputs.explicit-version }}
-          PROFILE: ${{ inputs.profile }}
         run: |
           set -eux
-          if [ "${PROFILE}" = "actions" ]; then
-            case "${BUMP_TYPE}" in
-              set)
-                if [ -z "${INPUT_VERSION}" ]; then
-                  echo "Missing version for type=set"
-                  exit 1
-                fi
-                task version:set VERSION_OVERRIDE="${INPUT_VERSION}"
-                ;;
-              patch)
-                task version:update:patch
-                ;;
-              minor)
-                task version:update:minor
-                ;;
-              major)
-                task version:update:major
-                ;;
-              *)
-                echo "Unknown type: ${BUMP_TYPE}"
-                exit 1
-                ;;
-            esac
-          else
-            normalize_and_validate_version() {
-              local input="$1"
-              local candidate
-              candidate="${input#v}"
-              if ! printf "%s" "${candidate}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-                return 1
-              fi
-              printf "v%s" "${candidate}"
-            }
-
-            get_current_version() {
-              local current
-              current=$(task version:get 2>/dev/null || true)
-              if [ -z "${current}" ] && [ -f .version ]; then
-                current=$(tr -d '\n' < .version)
-              fi
-              if [ -z "${current}" ]; then
-                return 1
-              fi
-              normalize_and_validate_version "${current}"
-            }
-
-            case "${BUMP_TYPE}" in
-              set)
-                if [ -z "${INPUT_VERSION}" ]; then
-                  echo "Missing version for type=set"
-                  exit 1
-                fi
-                next=$(normalize_and_validate_version "${INPUT_VERSION}") || {
-                  echo "Invalid explicit version: ${INPUT_VERSION}. Expected vX.Y.Z or X.Y.Z"
-                  exit 1
-                }
-                ;;
-              patch|minor|major)
-                current=$(get_current_version) || {
-                  echo "Current version not found or invalid. Expected vX.Y.Z"
-                  exit 1
-                }
-                no_v=${current#v}
-                IFS='.' read -r major minor patch <<< "${no_v}"
-
-                case "${BUMP_TYPE}" in
-                  patch)
-                    next="v${major}.${minor}.$((patch + 1))"
-                    ;;
-                  minor)
-                    next="v${major}.$((minor + 1)).0"
-                    ;;
-                  major)
-                    next="v$((major + 1)).0.0"
-                    ;;
-                esac
-                ;;
-              *)
-                echo "Unknown type: ${BUMP_TYPE}"
-                exit 1
-                ;;
-            esac
-
-            printf "%s" "${next}" > .version
-          fi
+          task version:resolve-next BUMP_TYPE="${BUMP_TYPE}" INPUT_VERSION="${INPUT_VERSION}" PROFILE="${{ inputs.profile }}"
           echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 
       - name: Resolve current version for build-only mode
@@ -190,30 +105,15 @@ jobs:
         if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}
         run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
+      - name: Set git config
+        if: ${{ !inputs.build-and-push-only }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
-        env:
-          VERSION: ${{ steps.version.outputs.REL_VERSION }}
-        run: |
-          set -eux
-          version_no_v="${VERSION#v}"
-          major="v$(echo "${version_no_v}" | awk -F. '{print $1}')"
-          minor="v$(echo "${version_no_v}" | awk -F. '{print $1"."$2}')"
-
-          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q .; then
-            echo "Release tag ${VERSION} already exists on origin"
-            exit 1
-          fi
-
-          git tag --annotate "${VERSION}" --message "${VERSION}"
-          git push origin "refs/tags/${VERSION}"
-
-          git tag --force --annotate "${minor}" --message "${VERSION}"
-          git push --force origin "refs/tags/${minor}"
-
-          git tag --force --annotate "${major}" --message "${VERSION}"
-          git push --force origin "refs/tags/${major}"
-
+        run: task version:tag-release
       - name: Create GitHub release
         if: ${{ !inputs.build-and-push-only }}
         uses: softprops/action-gh-release@v2

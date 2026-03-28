@@ -183,7 +183,7 @@ For each repository:
 4. manual version workflow has build-only mode
 5. weekly workflow includes dependency + baseline + lint + stale checks and issue reporting
 6. docs mention new automation entry points
-7. static profile repos include pages deploy workflow (`deploy-pages.yml`)
+7. static profile repos include pages deploy workflow (`auto-deploy-pages.yml`)
 
 Output artifact from coordinator:
 

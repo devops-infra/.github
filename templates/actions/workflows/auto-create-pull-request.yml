@@ -4,25 +4,25 @@ on:
   workflow_call:
     inputs:
       runs-on:
-        description: 'Runner to use'
+        description: Runner to use
         type: string
-        default: 'ubuntu-24.04-arm'
+        default: ubuntu-24.04-arm
       task-version:
-        description: 'Task version to install'
+        description: Task version to install
         type: string
-        default: '3.x'
+        default: 3.x
       enable-docker:
-        description: 'Enable Docker buildx and QEMU for multi-arch builds'
+        description: Enable Docker buildx and QEMU for multi-arch builds
         type: boolean
         default: true
       enable-lint:
-        description: 'Run linters before build'
+        description: Run linters before build
         type: boolean
         default: true
       docker-platforms:
-        description: 'Docker platforms to build for'
+        description: Docker platforms to build for
         type: string
-        default: 'amd64,arm64'
+        default: amd64,arm64
     secrets:
       DOCKER_TOKEN:
         required: false

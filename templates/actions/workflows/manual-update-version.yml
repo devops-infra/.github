@@ -4,33 +4,33 @@ on:
   workflow_call:
     inputs:
       runs-on:
-        description: 'Runner to use'
+        description: Runner to use
         type: string
-        default: 'ubuntu-24.04-arm'
+        default: ubuntu-24.04-arm
       task-version:
-        description: 'Task version to install'
+        description: Task version to install
         type: string
-        default: '3.x'
+        default: 3.x
       bump-type:
-        description: 'Bump type (patch, minor, major, set)'
+        description: Bump type (patch, minor, major, set)
         type: string
         required: false
-        default: 'patch'
+        default: patch
       explicit-version:
-        description: 'Explicit version when type="set"'
+        description: Explicit version when type="set"
         type: string
         default: ''
       build-and-push-only:
-        description: 'Skip version update and only build/push artifacts'
+        description: Skip version update and only build/push artifacts
         type: boolean
         default: false
       docker-platforms:
-        description: 'Docker platforms to build for when build-only mode is enabled'
+        description: Docker platforms to build for when build-only mode is enabled
         type: string
-        default: 'amd64,arm64'
+        default: amd64,arm64
     outputs:
       version:
-        description: 'Updated version'
+        description: Updated version
         value: ${{ jobs.update.outputs.version }}
     secrets:
       DOCKER_TOKEN:
@@ -112,7 +112,7 @@ jobs:
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
-          VERSION_SUFFIX: ''
+          VERSION_SUFFIX: ""
         run: |
           task docker:cmds
           task docker:push

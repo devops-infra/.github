@@ -59,13 +59,17 @@ jobs:
         with:
           version: ${{ inputs.task-version }}
 
+      - name: Set git config
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Create and push git tags
         id: version
         env:
           VERSION_SUFFIX: ${{ inputs.version-suffix }}
         run: |
           task lint
-          task git:set-config
           task version:tag-release
           echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 

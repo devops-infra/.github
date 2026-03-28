@@ -190,29 +190,15 @@ jobs:
         if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}
         run: echo "Build-only mode requested with docker disabled; skipping image build/push"
 
+      - name: Set git config
+        if: ${{ !inputs.build-and-push-only }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
-        env:
-          VERSION: ${{ steps.version.outputs.REL_VERSION }}
-        run: |
-          set -eux
-          version_no_v="${VERSION#v}"
-          major="v$(echo "${version_no_v}" | awk -F. '{print $1}')"
-          minor="v$(echo "${version_no_v}" | awk -F. '{print $1"."$2}')"
-
-          if git ls-remote --tags origin "refs/tags/${VERSION}" | grep -q .; then
-            echo "Release tag ${VERSION} already exists on origin"
-            exit 1
-          fi
-
-          git tag --annotate "${VERSION}" --message "${VERSION}"
-          git push origin "refs/tags/${VERSION}"
-
-          git tag --force --annotate "${minor}" --message "${VERSION}"
-          git push --force origin "refs/tags/${minor}"
-
-          git tag --force --annotate "${major}" --message "${VERSION}"
-          git push --force origin "refs/tags/${major}"
+        run: task version:tag-release
 
       - name: Create GitHub release
         if: ${{ !inputs.build-and-push-only }}

@@ -4,21 +4,21 @@ on:
   workflow_call:
     inputs:
       runs-on:
-        description: 'Runner to use'
+        description: Runner to use
         type: string
-        default: 'ubuntu-24.04-arm'
+        default: ubuntu-24.04-arm
       task-version:
-        description: 'Task version to install'
+        description: Task version to install
         type: string
-        default: '3.x'
+        default: 3.x
       sync-type:
-        description: 'File type to sync (all, configs, ignores, taskfiles)'
+        description: File type to sync (all, configs, ignores, taskfiles)
         type: string
         required: true
       template-profile:
-        description: 'Template profile to use for Taskfile sync (actions, dockerized, other, static)'
+        description: Template profile to use for Taskfile sync (actions, dockerized, other, static)
         type: string
-        default: 'actions'
+        default: actions
 
 permissions:
   contents: write

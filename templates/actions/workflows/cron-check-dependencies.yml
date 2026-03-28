@@ -4,37 +4,37 @@ on:
   workflow_call:
     inputs:
       runs-on:
-        description: 'Runner to use'
+        description: Runner to use
         type: string
-        default: 'ubuntu-24.04-arm'
+        default: ubuntu-24.04-arm
       task-version:
-        description: 'Task version to install'
+        description: Task version to install
         type: string
-        default: '3.x'
+        default: 3.x
       docker-platforms:
-        description: 'Docker platforms to build for'
+        description: Docker platforms to build for
         type: string
-        default: 'amd64,arm64'
+        default: amd64,arm64
       enable-docker:
-        description: 'Enable docker build/push validation'
+        description: Enable docker build/push validation
         type: boolean
         default: true
       enable-lint:
-        description: 'Run lint checks during weekly scan'
+        description: Run lint checks during weekly scan
         type: boolean
         default: true
       stale-days:
-        description: 'Mark branches/issues stale after this many days'
+        description: Mark branches/issues stale after this many days
         type: number
         default: 60
       issue-title:
-        description: 'Issue title for weekly report'
+        description: Issue title for weekly report
         type: string
-        default: '(Weekly) Repository health report'
+        default: (Weekly) Repository health report
       issue-labels:
-        description: 'Comma-separated labels for weekly report issue'
+        description: Comma-separated labels for weekly report issue
         type: string
-        default: 'automation,dependencies'
+        default: automation,dependencies
     secrets:
       DOCKER_TOKEN:
         required: false

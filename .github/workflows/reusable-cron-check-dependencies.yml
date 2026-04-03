@@ -43,6 +43,7 @@ permissions:
   contents: read
   issues: write
   pull-requests: read
+  packages: write
 
 jobs:
   dependency-check:

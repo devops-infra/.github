@@ -155,7 +155,7 @@ jobs:
 
       - name: Detect stale branches and issues
         id: stale
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const staleDays = Number('${{ inputs.stale-days }}')
@@ -204,7 +204,7 @@ jobs:
           fi
 
       - name: Create or update weekly issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           ISSUE_TITLE: ${{ inputs.issue-title }}
           ISSUE_LABELS: ${{ inputs.issue-labels }}

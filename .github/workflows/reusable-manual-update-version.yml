@@ -61,6 +61,7 @@ jobs:
         uses: arduino/setup-task@v2.0.0
         with:
           version: ${{ inputs.task-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update version
         id: version
@@ -99,6 +100,45 @@ jobs:
           task docker:cmds
           task docker:push
           task docker:push:inspect
+
+      - name: Detect container structure test configs
+        id: cst-configs
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
+        run: |
+          shopt -s nullglob
+          files=(tests/docker/*.yml tests/docker/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s\n' "${files[@]}" | sort > "$RUNNER_TEMP/cst-configs.txt"
+          {
+            echo "has_tests=true"
+            echo "config<<EOF"
+            cat "$RUNNER_TEMP/cst-configs.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve CST image
+        id: cst-image
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' }}
+        env:
+          VERSION_SUFFIX: ''
+        run: |
+          if task --list | grep -q "docker:image:test:ref"; then
+            IMAGE_REF="$(task docker:image:test:ref)"
+          else
+            VERSION="$(task version:get)"
+            IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${VERSION}"
+          fi
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Run container structure tests
+        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' }}
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: ${{ steps.cst-image.outputs.image }}
+          config: ${{ steps.cst-configs.outputs.config }}
 
       - name: Build-only mode without docker
         if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}

@@ -24,26 +24,18 @@ on:
         type: string
         default: actions
       stale-days:
-        description: Mark branches/issues stale after this many days
+        description: Mark branches/pull requests/issues stale after this many days
         type: number
         default: 60
-      issue-title:
-        description: Issue title for weekly report
-        type: string
-        default: (Weekly) Repository health report
-      issue-labels:
-        description: Comma-separated labels for weekly report issue
-        type: string
-        default: automation,dependencies
     secrets:
       DOCKER_TOKEN:
         required: false
 
 permissions:
-  contents: read
-  issues: write
-  pull-requests: read
+  contents: write
+  pull-requests: write
   packages: write
+  issues: read
 
 jobs:
   dependency-check:
@@ -60,11 +52,11 @@ jobs:
         uses: arduino/setup-task@v2.0.0
         with:
           version: ${{ inputs.task-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare report workspace
         run: |
-          mkdir -p .tmp
-          : > .tmp/findings.md
+          REPORT_FILE="${RUNNER_TEMP}/weekly-health-report.md"
           {
             echo "## Weekly Health Report"
             echo ""
@@ -73,8 +65,10 @@ jobs:
             echo "- Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "- Generated: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             echo ""
-            echo "### Findings"
-          } > .tmp/report.md
+            echo "### Important findings"
+          } > "$REPORT_FILE"
+          echo "REPORT_FILE=$REPORT_FILE" >> "$GITHUB_ENV"
+          echo "HAS_FINDINGS=false" >> "$GITHUB_ENV"
 
       - name: Run lint
         id: lint
@@ -84,25 +78,9 @@ jobs:
 
       - name: Record lint findings
         if: inputs.enable-lint && steps.lint.outcome != 'success'
-        run: echo "- [lint] \`task lint\` failed" >> .tmp/findings.md
-
-      - name: Validate baseline
-        id: baseline
-        continue-on-error: true
         run: |
-          set -eu
-          [ -f Taskfile.yml ] || { echo "Taskfile.yml missing"; exit 1; }
-          [ -f .github/workflows/auto-create-pull-request.yml ] || { echo "Missing workflow: auto-create-pull-request.yml"; exit 1; }
-          [ -f .github/workflows/cron-check-dependencies.yml ] || { echo "Missing workflow: cron-check-dependencies.yml"; exit 1; }
-          [ -f .github/workflows/manual-update-version.yml ] || { echo "Missing workflow: manual-update-version.yml"; exit 1; }
-          if grep -R -n -E "uses:[[:space:]]+.+@master" .github/workflows >/dev/null 2>&1; then
-            echo "Found @master workflow references in caller workflows"
-            exit 1
-          fi
-
-      - name: Record baseline findings
-        if: steps.baseline.outcome != 'success'
-        run: echo "- [baseline] Required files are missing or caller workflows still reference \`@master\`" >> .tmp/findings.md
+          echo "- lint failed: \`task lint\`" >> "$REPORT_FILE"
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
 
       - name: Run dependency checks
         id: deps
@@ -124,7 +102,9 @@ jobs:
 
       - name: Record dependency findings
         if: steps.deps.outcome != 'success'
-        run: echo "- [dependencies] Dependency check reported updates or failed" >> .tmp/findings.md
+        run: |
+          echo "- dependency checks reported updates or failed" >> "$REPORT_FILE"
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
 
       - name: Install Docker Buildx
         if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
@@ -149,11 +129,60 @@ jobs:
           task docker:push
           task docker:push:inspect
 
+      - name: Detect container structure test configs
+        id: cst-configs
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        continue-on-error: true
+        run: |
+          shopt -s nullglob
+          files=(tests/docker/*.yml tests/docker/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s\n' "${files[@]}" | sort > "$RUNNER_TEMP/cst-configs.txt"
+          {
+            echo "has_tests=true"
+            echo "config<<EOF"
+            cat "$RUNNER_TEMP/cst-configs.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Resolve CST image
+        id: cst-image
+        if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true'
+        continue-on-error: true
+        run: |
+          if task --list | grep -q "docker:image:test:ref"; then
+            IMAGE_REF="$(task docker:image:test:ref)"
+          else
+            VERSION="$(task version:get)"
+            IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${VERSION}-test"
+          fi
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Run container structure tests
+        id: cst
+        if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true'
+        continue-on-error: true
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: ${{ steps.cst-image.outputs.image }}
+          config: ${{ steps.cst-configs.outputs.config }}
+
       - name: Record docker findings
         if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.docker.outcome != 'success'
-        run: echo "- [docker] Docker validation failed (build/push/inspect)" >> .tmp/findings.md
+        run: |
+          echo "- docker build/push/inspect failed" >> "$REPORT_FILE"
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
 
-      - name: Detect stale branches and issues
+      - name: Record container structure test findings
+        if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' && steps.cst.outcome != 'success'
+        run: |
+          echo "- container structure tests failed for tests/docker configs" >> "$REPORT_FILE"
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
+
+      - name: Detect stale branches, pull requests, and issues
         id: stale
         uses: actions/github-script@v9
         with:
@@ -170,6 +199,12 @@ jobs:
               const commitDate = new Date(commit.data.commit.committer.date).getTime()
               if (now - commitDate > staleMs) staleBranches.push(branch.name)
             }
+            const stalePullRequests = []
+            const pullRequests = await github.paginate(github.rest.pulls.list, { owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 })
+            for (const pullRequest of pullRequests) {
+              const updated = new Date(pullRequest.updated_at).getTime()
+              if (now - updated > staleMs) stalePullRequests.push(`#${pullRequest.number}`)
+            }
             const staleIssues = []
             const issues = await github.paginate(github.rest.issues.listForRepo, { owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 })
             for (const issue of issues) {
@@ -178,57 +213,67 @@ jobs:
               if (now - updated > staleMs) staleIssues.push(`#${issue.number}`)
             }
             core.setOutput('stale_branch_count', String(staleBranches.length))
+            core.setOutput('stale_pr_count', String(stalePullRequests.length))
             core.setOutput('stale_issue_count', String(staleIssues.length))
             core.setOutput('stale_branches', staleBranches.slice(0, 20).join(', '))
+            core.setOutput('stale_prs', stalePullRequests.slice(0, 20).join(', '))
             core.setOutput('stale_issues', staleIssues.slice(0, 20).join(', '))
 
       - name: Record stale findings
-        if: steps.stale.outputs.stale_branch_count != '0' || steps.stale.outputs.stale_issue_count != '0'
+        if: steps.stale.outputs.stale_branch_count != '0' || steps.stale.outputs.stale_pr_count != '0' || steps.stale.outputs.stale_issue_count != '0'
         run: |
           if [ "${{ steps.stale.outputs.stale_branch_count }}" != "0" ]; then
-            echo "- [stale-branches] Found ${{ steps.stale.outputs.stale_branch_count }} stale branches: ${{ steps.stale.outputs.stale_branches }}" >> .tmp/findings.md
+            echo "- stale branches (${{ steps.stale.outputs.stale_branch_count }}): ${{ steps.stale.outputs.stale_branches }}" >> "$REPORT_FILE"
+          fi
+          if [ "${{ steps.stale.outputs.stale_pr_count }}" != "0" ]; then
+            echo "- stale pull requests (${{ steps.stale.outputs.stale_pr_count }}): ${{ steps.stale.outputs.stale_prs }}" >> "$REPORT_FILE"
           fi
           if [ "${{ steps.stale.outputs.stale_issue_count }}" != "0" ]; then
-            echo "- [stale-issues] Found ${{ steps.stale.outputs.stale_issue_count }} stale issues: ${{ steps.stale.outputs.stale_issues }}" >> .tmp/findings.md
+            echo "- stale issues (${{ steps.stale.outputs.stale_issue_count }}): ${{ steps.stale.outputs.stale_issues }}" >> "$REPORT_FILE"
           fi
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
 
       - name: Finalize report
         id: report
         run: |
-          if [ -s .tmp/findings.md ]; then
-            cat .tmp/findings.md >> .tmp/report.md
-            echo "status=issues" >> "$GITHUB_OUTPUT"
-          else
-            echo "- No findings. Repository matches current baseline." >> .tmp/report.md
-            echo "status=clean" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_FINDINGS" != "true" ]; then
+            echo "- no important updates or breaking changes detected" >> "$REPORT_FILE"
           fi
 
-      - name: Create or update weekly issue
-        uses: actions/github-script@v9
-        env:
-          ISSUE_TITLE: ${{ inputs.issue-title }}
-          ISSUE_LABELS: ${{ inputs.issue-labels }}
-          REPORT_STATUS: ${{ steps.report.outputs.status }}
+      - name: Detect repository changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push changes
+        id: commit
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH_NAME="chore/weekly-health-${GITHUB_RUN_ID}"
+          git checkout -B "$BRANCH_NAME"
+          git add -A
+          git commit -m "chore: weekly dependency and health updates" -m "$(cat "$REPORT_FILE")"
+          git push --set-upstream origin "$BRANCH_NAME"
+          {
+            echo "branch_name=$BRANCH_NAME"
+            echo "report_body<<EOF"
+            cat "$REPORT_FILE"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create pull request
+        if: steps.changes.outputs.has_changes == 'true'
+        uses: devops-infra/action-pull-request@v1
         with:
-          script: |
-            const fs = require('fs')
-            const title = process.env.ISSUE_TITLE
-            const labels = process.env.ISSUE_LABELS.split(',').map(v => v.trim()).filter(Boolean)
-            const status = process.env.REPORT_STATUS
-            const body = fs.readFileSync('.tmp/report.md', 'utf8')
-            const repoLabels = await github.paginate(github.rest.issues.listLabelsForRepo, { owner: context.repo.owner, repo: context.repo.repo, per_page: 100 })
-            const repoLabelSet = new Set(repoLabels.map(l => l.name))
-            const safeLabels = labels.filter(l => repoLabelSet.has(l))
-            const openIssues = await github.paginate(github.rest.issues.listForRepo, { owner: context.repo.owner, repo: context.repo.repo, state: 'open', per_page: 100 })
-            const existing = openIssues.find(i => i.title === title)
-            if (status === 'clean') {
-              if (existing) {
-                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body, state: 'closed', state_reason: 'completed' })
-              }
-              return
-            }
-            if (existing) {
-              await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: existing.number, body })
-            } else {
-              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: safeLabels })
-            }
+          github_token: ${{ github.token }}
+          source_branch: ${{ steps.commit.outputs.branch_name }}
+          target_branch: ${{ github.event.repository.default_branch }}
+          title: "chore: weekly dependency and health updates"
+          body: ${{ steps.commit.outputs.report_body }}
+          assignee: ${{ github.actor }}

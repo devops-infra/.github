@@ -3,6 +3,11 @@ version: '3'
 silent: true
 
 tasks:
+  docker:image:test:ref:
+    desc: Print test image reference for CST
+    cmds:
+      - echo "{{.DOCKER_NAME}}:{{.VERSION_FULL}}{{.VERSION_SUFFIX}}"
+
   docker:login:
     desc: Login to hub.docker.com and ghcr.io
     cmds:

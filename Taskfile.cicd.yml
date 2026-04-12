@@ -22,6 +22,7 @@ tasks:
     desc: Run all linters (Dockerfile, shell scripts, workflows, YAML)
     cmds:
       - task: lint:actionlint
+      - task: lint:hadolint
       - task: lint:shellcheck
       - task: lint:yamllint
 

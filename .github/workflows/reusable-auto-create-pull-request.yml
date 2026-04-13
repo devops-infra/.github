@@ -156,3 +156,4 @@ jobs:
         with:
           image: ${{ steps.cst-image.outputs.image }}
           config: ${{ steps.cst-configs.outputs.config }}
+          pull: true

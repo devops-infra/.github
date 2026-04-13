@@ -17,6 +17,6 @@ jobs:
     uses: ./.github/workflows/reusable-auto-create-pull-request.yml
     with:
       runs-on: ubuntu-24.04-arm
-      task-version: 3.x
+      task-version: 3.49
       profile: other
     secrets: inherit

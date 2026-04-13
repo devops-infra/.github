@@ -169,6 +169,7 @@ jobs:
         with:
           image: ${{ steps.cst-image.outputs.image }}
           config: ${{ steps.cst-configs.outputs.config }}
+          pull: true
 
       - name: Record docker findings
         if: (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.docker.outcome != 'success'

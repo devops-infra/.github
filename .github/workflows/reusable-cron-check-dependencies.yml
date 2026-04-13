@@ -1,4 +1,4 @@
-name: (Reusable - Cron) Check Dependencies
+name: (Reusable - Cron) Check dependencies
 
 on:
   workflow_call:

@@ -20,11 +20,10 @@ Each in-scope repository should expose these caller workflows in `.github/workfl
 1. `auto-create-pull-request.yml`
 2. `cron-check-dependencies.yml`
 3. `manual-update-version.yml`
-4. `manual-sync-common-files.yml` (recommended)
 
 Static profile repositories should also expose:
 
-5. `auto-deploy-pages.yml` (publish `site/` to GitHub Pages)
+4. `auto-deploy-pages.yml` (publish `site/` to GitHub Pages)
 
 ## Workflow versioning policy
 

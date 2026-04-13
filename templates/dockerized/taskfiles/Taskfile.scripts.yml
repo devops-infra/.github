@@ -186,4 +186,3 @@ tasks:
             echo "ℹ️ INFO: Major tag '$MAJOR' already up-to-date"
           fi
         fi
-

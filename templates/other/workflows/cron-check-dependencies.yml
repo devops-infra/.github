@@ -1,8 +1,8 @@
-name: (Cron) Weekly repository health
+name: (Cron) Check dependencies
 
 on:
   schedule:
-    - cron: '0 5 * * 1'
+    - cron: 0 5 * * 1
   workflow_dispatch:
 
 permissions:

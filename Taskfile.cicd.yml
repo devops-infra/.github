@@ -115,6 +115,14 @@ tasks:
     cmds:
       - echo "{{.VERSION}}"
 
+  dependency:update:
+    desc: Check main dependency not covered by dependabot
+    cmds:
+      - |
+        echo "ℹ️ No dedicated dependency updater configured for this repository."
+        echo "ℹ️ Dependabot handles GitHub Actions and package metadata updates."
+        echo "ℹ️ Keeping dependency checks as a safe no-op for now."
+
   version:set:
     desc: Validate version
     cmds:

@@ -1,4 +1,4 @@
-name: (Auto) Create Pull Request
+name: (Auto) Pull Request Create
 
 on:
   push:
@@ -13,10 +13,8 @@ permissions:
   pull-requests: write
 
 jobs:
-  call-auto-create-pull-request:
-    uses: ./.github/workflows/reusable-auto-create-pull-request.yml
+  call:
+    uses: devops-infra/.github/.github/workflows/reusable-auto-pull-request-create.yml@v1
     with:
-      runs-on: ubuntu-24.04-arm
-      task-version: 3.49
       profile: other
     secrets: inherit

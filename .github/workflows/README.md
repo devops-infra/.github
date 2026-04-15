@@ -17,9 +17,9 @@ Reusable callers exist for four profiles:
 
 Each in-scope repository should expose these caller workflows in `.github/workflows/`:
 
-1. `auto-create-pull-request.yml`
-2. `cron-check-dependencies.yml`
-3. `manual-update-version.yml`
+1. `auto-pull-request-create.yml`
+2. `cron-dependency-update.yml`
+3. `manual-release-create.yml`
 
 Static profile repositories should also expose:
 
@@ -36,12 +36,12 @@ Example:
 ```yaml
 jobs:
   call:
-    uses: devops-infra/.github/.github/workflows/reusable-auto-create-pull-request.yml@v1
+    uses: devops-infra/.github/.github/workflows/reusable-auto-pull-request-create.yml@v1
 ```
 
 ## Weekly health workflow behavior
 
-`cron-check-dependencies` is the aggregated weekly check. It combines:
+`cron-dependency-update` is the aggregated weekly check. It combines:
 
 - dependency checks
 - baseline validation
@@ -50,9 +50,9 @@ jobs:
 
 The workflow creates or updates one repository issue with findings and auto-closes it when clean.
 
-## Manual version update behavior
+## Manual release behavior
 
-`manual-update-version` supports two modes:
+`manual-release-create` supports two modes:
 
 - bump or set version (and open release PR)
 - build/push only without version bump (`build_only: true`)

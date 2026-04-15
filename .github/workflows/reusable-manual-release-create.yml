@@ -1,4 +1,4 @@
-name: (Reusable - Manual) Update Version
+name: (Reusable - Manual) Release Create
 
 on:
   workflow_call:

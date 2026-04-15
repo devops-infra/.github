@@ -11,7 +11,6 @@ includes:
     taskfile: ./Taskfile.cicd.yml
     flatten: true
 
-
 tasks:
   default:
     desc: List tasks

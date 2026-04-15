@@ -119,18 +119,14 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Resolve CST image
+      - name: Get test image ref
         id: cst-image
         if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' }}
         env:
           VERSION_SUFFIX: ''
         run: |
-          if task --list | grep -q "docker:image:test:ref"; then
-            IMAGE_REF="$(task docker:image:test:ref)"
-          else
-            VERSION="$(task version:get)"
-            IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${VERSION}"
-          fi
+          VERSION="$(task version:get)"
+          IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${VERSION}"
           echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
 
       - name: Run container structure tests

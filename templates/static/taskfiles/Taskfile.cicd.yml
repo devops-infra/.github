@@ -40,11 +40,6 @@ tasks:
     cmds:
       - task scripts:lint:yamllint
 
-  version:get:
-    desc: Get current version
-    cmds:
-      - task scripts:version:get
-
   dependency:update:
     desc: Check main dependency not covered by dependabot
     cmds:
@@ -135,39 +130,7 @@ tasks:
     cmds:
       - task scripts:git:set-config
 
-  sync:all:
-    desc: Sync all common files
+  version:get:
+    desc: Get current version
     cmds:
-      - task sync:configs
-      - task sync:ignores
-      - task sync:taskfiles
-
-  sync:configs:
-    desc: Sync configuration files from .github static template
-    cmds:
-      - |
-        echo "Syncing configuration files from devops-infra/.github..."
-        curl -fsSL {{.CONFIGS_BASE_URL}}/.editorconfig -o ./.editorconfig
-        curl -fsSL {{.CONFIGS_BASE_URL}}/.pre-commit-config.yaml -o ./.pre-commit-config.yaml
-        curl -fsSL {{.CONFIGS_BASE_URL}}/.shellcheckrc -o ./.shellcheckrc
-        curl -fsSL {{.CONFIGS_BASE_URL}}/.yamllint.yml -o ./.yamllint.yml
-        git add .editorconfig .pre-commit-config.yaml .shellcheckrc .yamllint.yml
-
-  sync:ignores:
-    desc: Sync ignore files from .github static template
-    cmds:
-      - |
-        echo "Syncing ignore files from devops-infra/.github..."
-        curl -fsSL {{.CONFIGS_BASE_URL}}/.gitignore -o ./.gitignore
-        git add .gitignore
-
-  sync:taskfiles:
-    desc: Sync Taskfiles from .github static template
-    cmds:
-      - |
-        echo "Syncing Taskfiles from devops-infra/.github..."
-        curl -fsSL {{.TASKFILES_BASE_URL}}/Taskfile.yml -o ./Taskfile.yml
-        curl -fsSL {{.TASKFILES_BASE_URL}}/Taskfile.cicd.yml -o ./Taskfile.cicd.yml
-        curl -fsSL {{.TASKFILES_BASE_URL}}/Taskfile.variables.yml -o ./Taskfile.variables.yml
-        curl -fsSL {{.TASKFILES_BASE_URL}}/Taskfile.scripts.yml -o ./Taskfile.scripts.yml
-        git add Taskfile*.yml
+      - task scripts:version:get

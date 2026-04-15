@@ -1,4 +1,4 @@
-name: (Reusable - Cron) Check dependencies
+name: (Cron) Dependency Update
 
 on:
   workflow_call:
@@ -38,7 +38,7 @@ permissions:
   issues: read
 
 jobs:
-  dependency-check:
+  dependency-update:
     name: Weekly health scan
     runs-on: ${{ inputs.runs-on }}
     steps:
@@ -70,6 +70,27 @@ jobs:
           echo "REPORT_FILE=$REPORT_FILE" >> "$GITHUB_ENV"
           echo "HAS_FINDINGS=false" >> "$GITHUB_ENV"
 
+      - name: Run dependency update task
+        id: deps
+        continue-on-error: true
+        run: |
+          set +e
+          if task --list | grep -q "dependency:update"; then
+            task dependency:update
+            rc=$?
+          else
+            echo "No dedicated dependency update task found (missing task: dependency:update)"
+            rc=3
+          fi
+          set -e
+          exit $rc
+
+      - name: Record dependency findings
+        if: steps.deps.outcome != 'success'
+        run: |
+          echo "- dependency checks reported updates or failed" >> "$REPORT_FILE"
+          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
+
       - name: Run lint
         id: lint
         if: inputs.enable-lint
@@ -80,30 +101,6 @@ jobs:
         if: inputs.enable-lint && steps.lint.outcome != 'success'
         run: |
           echo "- lint failed: \`task lint\`" >> "$REPORT_FILE"
-          echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
-
-      - name: Run dependency checks
-        id: deps
-        continue-on-error: true
-        run: |
-          set +e
-          if task --list | grep -q "deps:check"; then
-            task deps:check
-            rc=$?
-          elif task --list | grep -q "update-versions"; then
-            task update-versions
-            rc=$?
-          else
-            echo "No dedicated dependency-check task found"
-            rc=3
-          fi
-          set -e
-          exit $rc
-
-      - name: Record dependency findings
-        if: steps.deps.outcome != 'success'
-        run: |
-          echo "- dependency checks reported updates or failed" >> "$REPORT_FILE"
           echo "HAS_FINDINGS=true" >> "$GITHUB_ENV"
 
       - name: Install Docker Buildx

@@ -95,6 +95,14 @@ tasks:
     cmds:
       - echo "{{.VERSION}}"
 
+  dependency:update:
+    desc: Check main dependency not covered by dependabot
+    cmds:
+      - |
+        echo "ℹ️ No dedicated dependency updater configured for this repository profile."
+        echo "ℹ️ Dependabot handles GitHub Actions and package metadata updates."
+        echo "ℹ️ Docker builds still validate runtime dependencies during CI."
+
   version:set:
     desc: Update version in README.md and action.yml
     cmds:

@@ -1,4 +1,4 @@
-name: (Manual) Update Version
+name: (Manual) Release Create
 
 on:
   workflow_dispatch:
@@ -29,14 +29,11 @@ permissions:
   pull-requests: write
 
 jobs:
-  call-version-update:
-    uses: ./.github/workflows/reusable-manual-update-version.yml
+  call:
+    uses: devops-infra/.github/.github/workflows/reusable-manual-release-create.yml@v1
     with:
-      runs-on: ubuntu-24.04-arm
-      task-version: 3.x
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
       build-and-push-only: ${{ inputs.build_only }}
       profile: other
-      docker-platforms: amd64,arm64
     secrets: inherit

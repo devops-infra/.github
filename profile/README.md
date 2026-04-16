@@ -1,13 +1,13 @@
 # devops-infra
 
-`devops-infra` is a platform-focused GitHub organization for reusable CI/CD automation, containerized infrastructure tooling, and repository standards.
+## Focused on platform engineering, providing tools for CI/CD automation and infrastructure management and ease of maintenance.
 
+[![Website](https://img.shields.io/website?url=https%3A%2F%2Fshyper.pro&up_message=shyper.pro&down_message=shyper.pro&style=for-the-badge)](https://shyper.pro)
 [![Organization](https://img.shields.io/badge/GitHub-devops--infra-181717?style=for-the-badge&logo=github)](https://github.com/devops-infra)
-[![Meta Repo](https://img.shields.io/badge/Meta-.github-blue?style=for-the-badge&logo=githubactions)](https://github.com/devops-infra/.github)
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-devopsinfra-2496ED?style=for-the-badge&logo=docker)](https://hub.docker.com/u/devopsinfra)
+[![Docker](https://img.shields.io/badge/Docker-devopsinfra-2496ED?style=for-the-badge&logo=docker)](https://hub.docker.com/u/devopsinfra)
 [![GHCR](https://img.shields.io/badge/GHCR-devops--infra-2F81F7?style=for-the-badge&logo=github)](https://github.com/orgs/devops-infra/packages)
 
-## What We Build
+## What I Build
 
 ### CloudOps/DevOps Tooling
 
@@ -24,11 +24,6 @@
 - `action-terraform-copy-vars` - variable synchronization between environments
 - `action-terraform-validate` - Terraform validation
 - `action-tflint` - TFLint execution
-
-### Templates
-
-- `template-action` - baseline for action repositories
-- `template-repository` - baseline for general repositories
 
 ---
 

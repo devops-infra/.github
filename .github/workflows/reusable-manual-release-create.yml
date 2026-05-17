@@ -144,6 +144,24 @@ jobs:
         if: ${{ !inputs.build-and-push-only }}
         run: task git:set-config
 
+      - name: Apply version changes to repository files
+        if: ${{ !inputs.build-and-push-only }}
+        run: task version:set VERSION="${{ steps.version.outputs.REL_VERSION }}"
+
+      - name: Commit and push version changes
+        if: ${{ !inputs.build-and-push-only }}
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.REL_VERSION }}
+        run: |
+          if git diff --quiet --exit-code; then
+            echo "No versioned files changed"
+            exit 0
+          fi
+
+          git add -A
+          git commit -m "chore(release): prepare ${RELEASE_VERSION}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
       - name: Create and push release tags
         if: ${{ !inputs.build-and-push-only }}
         run: VERSION_OVERRIDE="${{ steps.version.outputs.REL_VERSION }}" task version:tag-release

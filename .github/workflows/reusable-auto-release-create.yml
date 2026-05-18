@@ -15,6 +15,16 @@ on:
         description: Repository profile (actions, dockerized, other, static)
         type: string
         default: actions
+      release-branch:
+        description: Explicit release branch to publish from (for manual dispatch), e.g. release/v1.3.0
+        type: string
+        required: false
+        default: ''
+      release-version:
+        description: Explicit release version (for manual dispatch), e.g. v1.3.0
+        type: string
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -41,6 +51,31 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
+            const inputReleaseBranch = `${{ inputs.release-branch }}`.trim()
+            const inputReleaseVersion = `${{ inputs.release-version }}`.trim()
+
+            const emitVersion = (branchRef, explicitVersion) => {
+              const rawVersion = explicitVersion || branchRef.replace(/^release\//, '')
+              if (!/^v\d+\.\d+\.\d+$/.test(rawVersion)) {
+                core.setFailed(`Resolved release version '${rawVersion}' is invalid. Expected 'vX.Y.Z'.`)
+                return false
+              }
+              core.setOutput('should_release', 'true')
+              core.setOutput('release_branch', branchRef)
+              core.setOutput('release_version', rawVersion)
+              return true
+            }
+
+            if (inputReleaseBranch) {
+              if (!inputReleaseBranch.startsWith('release/')) {
+                core.setFailed(`Input release-branch '${inputReleaseBranch}' must start with 'release/'`)
+                return
+              }
+              core.info(`Using manual dispatch release branch '${inputReleaseBranch}'`)
+              emitVersion(inputReleaseBranch, inputReleaseVersion)
+              return
+            }
+
             const owner = context.repo.owner
             const repo = context.repo.repo
             const sha = context.sha
@@ -61,15 +96,14 @@ jobs:
             }
 
             core.info(`Matched merged release PR #${match.number} from ${match.head.ref} to ${match.base.ref}`)
-            core.setOutput('should_release', 'true')
-            core.setOutput('release_branch', match.head.ref)
+            emitVersion(match.head.ref, inputReleaseVersion)
 
-      - name: Resolve release version
+      - name: Resolve release version from release branch
         id: version
         if: steps.release-pr.outputs.should_release == 'true'
         run: |
           set -eu
-          version="$(task version:get)"
+          version='${{ steps.release-pr.outputs.release_version }}'
           if [ -z "$version" ]; then
             echo "❌ ERROR: Resolved version is empty"
             exit 1

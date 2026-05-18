@@ -1,0 +1,20 @@
+name: (Automatic) Release Create
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  call:
+    uses: ./.github/workflows/reusable-automatic-release-create.yml
+    with:
+      runs-on: ubuntu-24.04-arm
+      task-version: 3.x
+      profile: other
+    secrets: inherit

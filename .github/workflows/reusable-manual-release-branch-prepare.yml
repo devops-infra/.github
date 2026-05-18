@@ -219,6 +219,7 @@ jobs:
           commit_message: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
           no_edit: true
           target_branch: release/${{ steps.version.outputs.REL_VERSION }}
+          amend: true
 
       - name: Create release pull request
         if: ${{ !inputs.build-and-push-only }}

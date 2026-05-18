@@ -246,16 +246,17 @@ jobs:
       - name: Commit and push changes
         id: commit
         if: steps.changes.outputs.has_changes == 'true'
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ github.token }}
+          target_branch: chore/weekly-health-${{ github.run_id }}
+          commit_message: "chore: weekly dependency and health updates"
+
+      - name: Export report body
+        id: report-body
+        if: steps.changes.outputs.has_changes == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          BRANCH_NAME="chore/weekly-health-${GITHUB_RUN_ID}"
-          git checkout -B "$BRANCH_NAME"
-          git add -A
-          git commit -m "chore: weekly dependency and health updates" -m "$(cat "$REPORT_FILE")"
-          git push --set-upstream origin "$BRANCH_NAME"
           {
-            echo "branch_name=$BRANCH_NAME"
             echo "report_body<<EOF"
             cat "$REPORT_FILE"
             echo "EOF"
@@ -269,5 +270,5 @@ jobs:
           source_branch: ${{ steps.commit.outputs.branch_name }}
           target_branch: ${{ github.event.repository.default_branch }}
           title: "chore: weekly dependency and health updates"
-          body: ${{ steps.commit.outputs.report_body }}
+          body: ${{ steps.report-body.outputs.report_body }}
           assignee: ${{ github.actor }}

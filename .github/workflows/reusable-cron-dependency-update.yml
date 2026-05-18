@@ -1,4 +1,4 @@
-name: (Reusable - Cron) Dependency Update
+name: (Reusable) - (Cron) Dependency Update
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: (Reusable - Automatic) Release Create
+name: (Reusable) - (Automatic) Release Create
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: (Manual) Release Create
+name: (Manual) Release Branch Prepare
 
 on:
   workflow_dispatch:
@@ -35,5 +35,5 @@ jobs:
       bump-type: ${{ inputs.type }}
       explicit-version: ${{ inputs.version }}
       build-and-push-only: ${{ inputs.build_only }}
-      profile: dockerized
+      profile: actions
     secrets: inherit

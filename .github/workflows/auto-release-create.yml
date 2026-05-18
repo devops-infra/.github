@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   call:
-    uses: ./.github/workflows/reusable-automatic-release-create.yml
+    uses: ./.github/workflows/reusable-auto-release-create.yml
     with:
       runs-on: ubuntu-24.04-arm
       task-version: 3.x

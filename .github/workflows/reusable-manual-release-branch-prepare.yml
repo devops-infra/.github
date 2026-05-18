@@ -1,4 +1,4 @@
-name: (Reusable - Manual) Release Create
+name: (Reusable - Manual) Release Branch Prepare
 
 on:
   workflow_call:
@@ -35,7 +35,7 @@ on:
     outputs:
       version:
         description: Updated version
-        value: ${{ jobs.update.outputs.version }}
+        value: ${{ jobs.prepare.outputs.version }}
     secrets:
       DOCKER_TOKEN:
         required: false
@@ -45,8 +45,8 @@ permissions:
   packages: write
 
 jobs:
-  update:
-    name: Resolve version, tag and release
+  prepare:
+    name: Resolve version, build RC, and prepare release branch
     runs-on: ${{ inputs.runs-on }}
     outputs:
       version: ${{ steps.export-version.outputs.REL_VERSION }}
@@ -63,7 +63,7 @@ jobs:
           version: ${{ inputs.task-version }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Update version
+      - name: Resolve target version
         id: version
         if: ${{ !inputs.build-and-push-only }}
         env:
@@ -80,11 +80,11 @@ jobs:
         run: echo "REL_VERSION=$(task version:get)" >> "$GITHUB_OUTPUT"
 
       - name: Install Docker Buildx
-        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
+        if: ${{ inputs.profile == 'actions' || inputs.profile == 'dockerized' }}
         uses: docker/setup-buildx-action@v4
 
       - name: Install QEMU
-        if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
+        if: ${{ inputs.profile == 'actions' || inputs.profile == 'dockerized' }}
         uses: docker/setup-qemu-action@v4
         with:
           image: tonistiigi/binfmt:latest
@@ -101,7 +101,7 @@ jobs:
           task docker:push
           task docker:push:inspect
 
-      - name: Detect container structure test configs
+      - name: Detect container structure test configs in build-only mode
         id: cst-configs
         if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
         run: |
@@ -119,7 +119,7 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Get test image ref
+      - name: Get test image ref in build-only mode
         id: cst-image
         if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' }}
         env:
@@ -129,7 +129,7 @@ jobs:
           IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${VERSION}"
           echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
 
-      - name: Run container structure tests
+      - name: Run container structure tests in build-only mode
         if: ${{ inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs.outputs.has_tests == 'true' }}
         uses: devops-infra/action-container-structure-test@v1
         with:
@@ -148,30 +148,93 @@ jobs:
         if: ${{ !inputs.build-and-push-only }}
         run: task version:set VERSION="${{ steps.version.outputs.REL_VERSION }}"
 
-      - name: Commit and push version changes
-        if: ${{ !inputs.build-and-push-only }}
+      - name: Build and push release-candidate artifacts
+        if: ${{ !inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
         env:
-          RELEASE_VERSION: ${{ steps.version.outputs.REL_VERSION }}
+          DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VERSION_SUFFIX: '-rc'
+          VERSION_OVERRIDE: ${{ steps.version.outputs.REL_VERSION }}
         run: |
-          if git diff --quiet --exit-code; then
-            echo "No versioned files changed"
+          task docker:cmds
+          task docker:push
+          task docker:push:inspect
+
+      - name: Detect container structure test configs for RC
+        id: cst-configs-rc
+        if: ${{ !inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') }}
+        run: |
+          shopt -s nullglob
+          files=(tests/docker/*.yml tests/docker/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          printf '%s\n' "${files[@]}" | sort > "$RUNNER_TEMP/cst-configs-rc.txt"
+          {
+            echo "has_tests=true"
+            echo "config<<EOF"
+            cat "$RUNNER_TEMP/cst-configs-rc.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
-          git add -A
-          git commit -m "chore(release): prepare ${RELEASE_VERSION}"
-          git push origin "HEAD:${GITHUB_REF_NAME}"
+      - name: Get RC test image ref
+        id: cst-image-rc
+        if: ${{ !inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs-rc.outputs.has_tests == 'true' }}
+        run: |
+          IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${{ steps.version.outputs.REL_VERSION }}-rc"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
 
-      - name: Create and push release tags
-        if: ${{ !inputs.build-and-push-only }}
-        run: VERSION_OVERRIDE="${{ steps.version.outputs.REL_VERSION }}" task version:tag-release
-
-      - name: Create GitHub release
-        if: ${{ !inputs.build-and-push-only }}
-        uses: softprops/action-gh-release@v3
+      - name: Run container structure tests for RC
+        if: ${{ !inputs.build-and-push-only && (inputs.profile == 'actions' || inputs.profile == 'dockerized') && steps.cst-configs-rc.outputs.has_tests == 'true' }}
+        uses: devops-infra/action-container-structure-test@v1
         with:
-          tag_name: ${{ steps.version.outputs.REL_VERSION }}
-          generate_release_notes: true
+          image: ${{ steps.cst-image-rc.outputs.image }}
+          config: ${{ steps.cst-configs-rc.outputs.config }}
+
+      - name: Detect repository changes
+        id: changes
+        if: ${{ !inputs.build-and-push-only }}
+        run: |
+          if git diff --quiet --exit-code; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit and push release branch (with file changes)
+        if: ${{ !inputs.build-and-push-only && steps.changes.outputs.has_changes == 'true' }}
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ github.token }}
+          commit_message: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
+          target_branch: release/${{ steps.version.outputs.REL_VERSION }}
+
+      - name: Commit and push release branch (no file changes)
+        if: ${{ !inputs.build-and-push-only && steps.changes.outputs.has_changes == 'false' }}
+        uses: devops-infra/action-commit-push@v1
+        with:
+          github_token: ${{ github.token }}
+          commit_message: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
+          amend: true
+          no_edit: true
+          target_branch: release/${{ steps.version.outputs.REL_VERSION }}
+
+      - name: Create release pull request
+        if: ${{ !inputs.build-and-push-only }}
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          source_branch: release/${{ steps.version.outputs.REL_VERSION }}
+          target_branch: ${{ github.event.repository.default_branch }}
+          title: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
+          body: |
+            Automated release preparation.
+
+            - Version: `${{ steps.version.outputs.REL_VERSION }}`
+            - Branch: `release/${{ steps.version.outputs.REL_VERSION }}`
+            - Docker artifacts: release-candidate tags (`-rc`)
+          assignee: ${{ github.actor }}
 
       - name: Export version output
         id: export-version

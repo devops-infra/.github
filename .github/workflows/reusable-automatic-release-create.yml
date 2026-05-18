@@ -1,0 +1,104 @@
+name: (Reusable - Automatic) Release Create
+
+on:
+  workflow_call:
+    inputs:
+      runs-on:
+        description: Runner to use
+        type: string
+        default: ubuntu-24.04-arm
+      task-version:
+        description: Task version to install
+        type: string
+        default: 3.x
+      profile:
+        description: Repository profile (actions, dockerized, other, static)
+        type: string
+        default: actions
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release:
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: arduino/setup-task@v2.0.0
+        with:
+          version: ${{ inputs.task-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Detect merged release branch for current commit
+        id: release-pr
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const owner = context.repo.owner
+            const repo = context.repo.repo
+            const sha = context.sha
+            const baseRef = context.ref.replace('refs/heads/', '')
+
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha: sha,
+            })
+
+            const match = prs.find((pr) => pr.merged_at && pr.base?.ref === baseRef && (pr.head?.ref || '').startsWith('release/'))
+
+            if (!match) {
+              core.info('No merged release/* PR associated with this commit. Skipping release publishing.')
+              core.setOutput('should_release', 'false')
+              return
+            }
+
+            core.info(`Matched merged release PR #${match.number} from ${match.head.ref} to ${match.base.ref}`)
+            core.setOutput('should_release', 'true')
+            core.setOutput('release_branch', match.head.ref)
+
+      - name: Resolve release version
+        id: version
+        if: steps.release-pr.outputs.should_release == 'true'
+        run: |
+          set -eu
+          version="$(task version:get)"
+          if [ -z "$version" ]; then
+            echo "❌ ERROR: Resolved version is empty"
+            exit 1
+          fi
+          echo "REL_VERSION=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Check if release tag already exists
+        id: tag-exists
+        if: steps.release-pr.outputs.should_release == 'true'
+        run: |
+          set -eu
+          version='${{ steps.version.outputs.REL_VERSION }}'
+          if git ls-remote --tags origin "refs/tags/${version}" | grep -q .; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create and push release tags
+        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true'
+        run: VERSION_OVERRIDE='${{ steps.version.outputs.REL_VERSION }}' task version:tag-release
+
+      - name: Create GitHub release
+        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true'
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ steps.version.outputs.REL_VERSION }}
+          generate_release_notes: true
+
+      - name: Skip duplicate release
+        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists == 'true'
+        run: echo "Release tag already exists for ${{ steps.version.outputs.REL_VERSION }}; skipping publish"

@@ -43,6 +43,7 @@ on:
 permissions:
   contents: write
   packages: write
+  pull-requests: write
 
 jobs:
   prepare:
@@ -234,6 +235,7 @@ jobs:
             - Version: `${{ steps.version.outputs.REL_VERSION }}`
             - Branch: `release/${{ steps.version.outputs.REL_VERSION }}`
             - Docker artifacts: release-candidate tags (`-rc`)
+          allow_no_diff: true
           assignee: ${{ github.actor }}
 
       - name: Export version output

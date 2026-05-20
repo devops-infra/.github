@@ -136,6 +136,7 @@ jobs:
         with:
           image: ${{ steps.cst-image.outputs.image }}
           config: ${{ steps.cst-configs.outputs.config }}
+          pull: true
 
       - name: Build-only mode without docker
         if: ${{ inputs.build-and-push-only && inputs.profile != 'actions' && inputs.profile != 'dockerized' }}
@@ -192,6 +193,7 @@ jobs:
         with:
           image: ${{ steps.cst-image-rc.outputs.image }}
           config: ${{ steps.cst-configs-rc.outputs.config }}
+          pull: true
 
       - name: Detect repository changes
         id: changes

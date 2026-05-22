@@ -56,7 +56,7 @@ jobs:
           task git:get-pr-template
 
       - name: Create Pull Request
-        uses: devops-infra/action-pull-request@v1
+        uses: devops-infra/action-pull-request@v1.1.1
         with:
           github_token: ${{ github.token }}
           assignee: ${{ github.actor }}
@@ -148,7 +148,7 @@ jobs:
 
       - name: Run container structure tests
         if: steps.cst-configs.outputs.has_tests == 'true'
-        uses: devops-infra/action-container-structure-test@v1
+        uses: devops-infra/action-container-structure-test@v1.0.0
         with:
           image: ${{ steps.cst-image.outputs.image }}
           config: ${{ steps.cst-configs.outputs.config }}

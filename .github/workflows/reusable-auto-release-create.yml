@@ -152,6 +152,56 @@ jobs:
           tag_name: ${{ steps.version.outputs.REL_VERSION }}
           generate_release_notes: true
 
+      - name: Docker Hub Description
+        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true' && (inputs.profile == 'actions' || inputs.profile == 'dockerized')
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Detect container structure test configs for release
+        id: cst-configs-release
+        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true' && (inputs.profile == 'actions' || inputs.profile == 'dockerized')
+        run: |
+          shopt -s nullglob
+          files=(tests/docker/*.yml tests/docker/*.yaml)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "has_tests=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          printf '%s\n' "${files[@]}" | sort > "$RUNNER_TEMP/cst-configs-release.txt"
+          {
+            echo "has_tests=true"
+            echo "config<<EOF"
+            cat "$RUNNER_TEMP/cst-configs-release.txt"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Get release test image ref
+        id: cst-image-release
+        if: >-
+          steps.release-pr.outputs.should_release == 'true' &&
+          steps.tag-exists.outputs.exists != 'true' &&
+          (inputs.profile == 'actions' || inputs.profile == 'dockerized') &&
+          steps.cst-configs-release.outputs.has_tests == 'true'
+        run: |
+          IMAGE_REF="devopsinfra/${{ github.event.repository.name }}:${{ steps.version.outputs.REL_VERSION }}"
+          echo "image=$IMAGE_REF" >> "$GITHUB_OUTPUT"
+
+      - name: Run container structure tests for release image
+        if: >-
+          steps.release-pr.outputs.should_release == 'true' &&
+          steps.tag-exists.outputs.exists != 'true' &&
+          (inputs.profile == 'actions' || inputs.profile == 'dockerized') &&
+          steps.cst-configs-release.outputs.has_tests == 'true'
+        uses: devops-infra/action-container-structure-test@v1
+        with:
+          image: ${{ steps.cst-image-release.outputs.image }}
+          config: ${{ steps.cst-configs-release.outputs.config }}
+          pull: true
+
       - name: Skip duplicate release
         if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists == 'true'
         run: echo "Release tag already exists for ${{ steps.version.outputs.REL_VERSION }}; skipping publish"

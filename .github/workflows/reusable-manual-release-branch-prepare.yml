@@ -206,7 +206,7 @@ jobs:
           fi
 
       - name: Commit and push release branch
-        if: ${{ !inputs.build-and-push-only }}
+        if: ${{ !inputs.build-and-push-only && github.repository != 'devops-infra/action-commit-push' }}
         uses: devops-infra/action-commit-push@v1
         with:
           github_token: ${{ github.token }}
@@ -216,6 +216,38 @@ jobs:
           allow_empty_commit: true
           force_with_lease: true
           target_branch: release/${{ steps.version.outputs.REL_VERSION }}
+
+      - name: Commit and push release branch (self fallback)
+        if: ${{ !inputs.build-and-push-only && github.repository == 'devops-infra/action-commit-push' }}
+        env:
+          BRANCH: release/${{ steps.version.outputs.REL_VERSION }}
+          BASE: ${{ github.event.repository.default_branch }}
+          MESSAGE: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
+        run: |
+          set -euxo pipefail
+
+          git fetch origin "${BASE}" || true
+          git fetch origin "${BRANCH}" || true
+
+          if git show-ref --verify --quiet "refs/remotes/origin/${BRANCH}"; then
+            git checkout -B "${BRANCH}" "origin/${BRANCH}"
+            git reset --hard "origin/${BASE}"
+          else
+            git checkout -B "${BRANCH}" "origin/${BASE}"
+          fi
+
+          git add -A
+          if git diff --cached --quiet; then
+            git commit --allow-empty -m "${MESSAGE}"
+          else
+            git commit -m "${MESSAGE}"
+          fi
+
+          if git show-ref --verify --quiet "refs/remotes/origin/${BRANCH}"; then
+            git push --force-with-lease origin "${BRANCH}"
+          else
+            git push -u origin "${BRANCH}"
+          fi
 
       - name: Create release pull request
         if: ${{ !inputs.build-and-push-only }}

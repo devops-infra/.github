@@ -52,6 +52,20 @@ jobs:
     outputs:
       version: ${{ steps.export-version.outputs.REL_VERSION }}
     steps:
+      - name: Log workflow parameters
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "repository=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "inputs.runs-on=${{ inputs.runs-on }}"
+          echo "inputs.task-version=${{ inputs.task-version }}"
+          echo "inputs.bump-type=${{ inputs.bump-type }}"
+          echo "inputs.explicit-version=${{ inputs.explicit-version }}"
+          echo "inputs.build-and-push-only=${{ inputs.build-and-push-only }}"
+          echo "inputs.profile=${{ inputs.profile }}"
+          echo "inputs.docker-platforms=${{ inputs.docker-platforms }}"
+
       - name: Checkout
         uses: actions/checkout@v6
         with:

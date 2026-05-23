@@ -36,6 +36,18 @@ jobs:
   pull-request:
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Log workflow parameters
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "repository=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "inputs.runs-on=${{ inputs.runs-on }}"
+          echo "inputs.task-version=${{ inputs.task-version }}"
+          echo "inputs.enable-lint=${{ inputs.enable-lint }}"
+          echo "inputs.profile=${{ inputs.profile }}"
+          echo "inputs.docker-platforms=${{ inputs.docker-platforms }}"
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -68,6 +80,18 @@ jobs:
     needs: [pull-request]
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Log workflow parameters
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "repository=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "inputs.runs-on=${{ inputs.runs-on }}"
+          echo "inputs.task-version=${{ inputs.task-version }}"
+          echo "inputs.enable-lint=${{ inputs.enable-lint }}"
+          echo "inputs.profile=${{ inputs.profile }}"
+          echo "inputs.docker-platforms=${{ inputs.docker-platforms }}"
+
       - name: Checkout
         uses: actions/checkout@v6
         with:
@@ -88,6 +112,18 @@ jobs:
     needs: [pull-request]
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Log workflow parameters
+        run: |
+          echo "event_name=${{ github.event_name }}"
+          echo "repository=${{ github.repository }}"
+          echo "ref=${{ github.ref }}"
+          echo "sha=${{ github.sha }}"
+          echo "inputs.runs-on=${{ inputs.runs-on }}"
+          echo "inputs.task-version=${{ inputs.task-version }}"
+          echo "inputs.enable-lint=${{ inputs.enable-lint }}"
+          echo "inputs.profile=${{ inputs.profile }}"
+          echo "inputs.docker-platforms=${{ inputs.docker-platforms }}"
+
       - name: Checkout
         uses: actions/checkout@v6
         with:

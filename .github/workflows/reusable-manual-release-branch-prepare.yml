@@ -206,7 +206,7 @@ jobs:
           fi
 
       - name: Commit and push release branch
-        if: ${{ !inputs.build-and-push-only && github.repository != 'devops-infra/action-commit-push' }}
+        if: ${{ !inputs.build-and-push-only && !contains(fromJSON('["devops-infra/action-commit-push","devops-infra/.github"]'), github.repository) }}
         uses: devops-infra/action-commit-push@v1
         with:
           github_token: ${{ github.token }}
@@ -218,7 +218,7 @@ jobs:
           target_branch: release/${{ steps.version.outputs.REL_VERSION }}
 
       - name: Commit and push release branch (self fallback)
-        if: ${{ !inputs.build-and-push-only && github.repository == 'devops-infra/action-commit-push' }}
+        if: ${{ !inputs.build-and-push-only && contains(fromJSON('["devops-infra/action-commit-push","devops-infra/.github"]'), github.repository) }}
         env:
           BRANCH: release/${{ steps.version.outputs.REL_VERSION }}
           BASE: ${{ github.event.repository.default_branch }}

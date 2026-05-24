@@ -44,6 +44,7 @@ permissions:
   contents: write
   packages: write
   pull-requests: write
+  issues: write
 
 jobs:
   prepare:
@@ -288,3 +289,93 @@ jobs:
           else
             echo "REL_VERSION=${{ steps.version.outputs.REL_VERSION }}" >> "$GITHUB_OUTPUT"
           fi
+
+  e2e-action-commit-push:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-commit-push' && !inputs.build-and-push-only
+    needs: [prepare]
+    permissions:
+      contents: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-pull-request:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-pull-request' && !inputs.build-and-push-only
+    needs: [prepare]
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-container-structure-test:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-container-structure-test'
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-container-structure-test.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.prepare.outputs.version }}-rc
+    secrets: inherit
+
+  e2e-action-format-hcl:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-format-hcl'
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-format-hcl.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.prepare.outputs.version }}-rc
+    secrets: inherit
+
+  e2e-action-tflint:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-tflint'
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-tflint.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.prepare.outputs.version }}-rc
+    secrets: inherit
+
+  e2e-action-terraform-validate:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-terraform-validate'
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-validate.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.prepare.outputs.version }}-rc
+    secrets: inherit
+
+  e2e-action-terraform-copy-vars:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-terraform-copy-vars'
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-copy-vars.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.prepare.outputs.version }}-rc
+    secrets: inherit
+
+  e2e-action-template-action:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'template-action' && !inputs.build-and-push-only
+    needs: [prepare]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-template-action.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit

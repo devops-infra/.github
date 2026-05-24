@@ -42,6 +42,14 @@ jobs:
     name: Weekly health scan
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Enforce organization caller for reusable workflow
+        if: ${{ github.event_name == 'workflow_call' }}
+        run: |
+          if [ "${{ github.repository_owner }}" != "devops-infra" ]; then
+            echo "This reusable workflow can only be called by devops-infra repositories."
+            exit 1
+          fi
+
       - name: Log workflow parameters
         run: |
           echo "event_name=${{ github.event_name }}"

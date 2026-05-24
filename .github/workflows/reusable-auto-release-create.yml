@@ -37,6 +37,10 @@ permissions:
 jobs:
   release:
     runs-on: ${{ inputs.runs-on }}
+    outputs:
+      should_release: ${{ steps.release-pr.outputs.should_release }}
+      tag_exists: ${{ steps.tag-exists.outputs.exists }}
+      release_version: ${{ steps.version.outputs.REL_VERSION }}
     steps:
       - name: Log workflow parameters
         run: |
@@ -218,3 +222,183 @@ jobs:
       - name: Skip duplicate release
         if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists == 'true'
         run: echo "Release tag already exists for ${{ steps.version.outputs.REL_VERSION }}; skipping publish"
+
+  verify-release-ref-tags:
+    if: >-
+      inputs.profile == 'actions' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: read
+    steps:
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+  e2e-action-commit-push:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-commit-push' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-pull-request:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-pull-request' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-container-structure-test:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-container-structure-test' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-container-structure-test.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
+    secrets: inherit
+
+  e2e-action-format-hcl:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-format-hcl' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-format-hcl.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
+    secrets: inherit
+
+  e2e-action-tflint:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-tflint' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-tflint.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
+    secrets: inherit
+
+  e2e-action-terraform-validate:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-terraform-validate' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-validate.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
+    secrets: inherit
+
+  e2e-action-terraform-copy-vars:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-terraform-copy-vars' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-copy-vars.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
+    secrets: inherit
+
+  e2e-action-template-action:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'template-action' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, verify-release-ref-tags]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-template-action.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit

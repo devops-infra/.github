@@ -111,6 +111,8 @@ jobs:
     if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
     needs: [pull-request]
     runs-on: ${{ inputs.runs-on }}
+    outputs:
+      image_tag: ${{ steps.e2e-image-tag.outputs.value }}
     steps:
       - name: Log workflow parameters
         run: |
@@ -152,6 +154,10 @@ jobs:
           VERSION_SUFFIX: '-test'
         run: task docker:push
 
+      - name: Resolve E2E test image tag
+        id: e2e-image-tag
+        run: echo "value=$(task version:get)-test" >> "$GITHUB_OUTPUT"
+
       - name: Inspect image
         env:
           VERSION_SUFFIX: '-test'
@@ -189,3 +195,93 @@ jobs:
           image: ${{ steps.cst-image.outputs.image }}
           config: ${{ steps.cst-configs.outputs.config }}
           pull: true
+
+  e2e-action-commit-push:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-commit-push'
+    needs: [pull-request]
+    permissions:
+      contents: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-pull-request:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-pull-request'
+    needs: [pull-request]
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-container-structure-test:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-container-structure-test'
+    needs: [pull-request]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-container-structure-test.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  e2e-action-format-hcl:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-format-hcl'
+    needs: [docker]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-format-hcl.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
+    secrets: inherit
+
+  e2e-action-tflint:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-tflint'
+    needs: [docker]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-tflint.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
+    secrets: inherit
+
+  e2e-action-terraform-validate:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-terraform-validate'
+    needs: [docker]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-validate.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
+    secrets: inherit
+
+  e2e-action-terraform-copy-vars:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'action-terraform-copy-vars'
+    needs: [docker]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-copy-vars.yml@master
+    with:
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
+    secrets: inherit
+
+  e2e-action-template-action:
+    if: inputs.profile == 'actions' && github.event.repository.name == 'template-action'
+    needs: [pull-request]
+    permissions:
+      contents: read
+    uses: devops-infra/triglav/.github/workflows/e2e-action-template-action.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit

@@ -25,6 +25,10 @@
 - `action-terraform-validate` - Terraform validation
 - `action-tflint` - TFLint execution
 
+### Validation Framework
+
+- `triglav` - framework for integration and end-to-end testing across organization tooling, especially GitHub Actions
+
 ---
 
 Built and maintained by Krzysztof Szyper ([`@ChristophShyper`](https://github.com/ChristophShyper)).

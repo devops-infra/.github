@@ -4,6 +4,9 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: "UTC"
     groups:
       gha-all:
         patterns:
@@ -13,6 +16,9 @@ updates:
     directory: "/templates/actions/workflows"
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: "UTC"
     groups:
       gha-all:
         patterns:
@@ -22,6 +28,9 @@ updates:
     directory: "/templates/dockerized/workflows"
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: "UTC"
     groups:
       gha-all:
         patterns:
@@ -31,6 +40,9 @@ updates:
     directory: "/templates/other/workflows"
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: "UTC"
     groups:
       gha-all:
         patterns:
@@ -40,6 +52,9 @@ updates:
     directory: "/templates/static/workflows"
     schedule:
       interval: weekly
+      day: monday
+      time: "05:00"
+      timezone: "UTC"
     groups:
       gha-all:
         patterns:

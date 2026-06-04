@@ -70,10 +70,9 @@ jobs:
           fetch-tags: true
 
       - name: Install Task
-        uses: arduino/setup-task@v2.0.0
+        uses: go-task/setup-task@v2
         with:
-          version: ${{ inputs.task-version }}
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: 3.x
 
       - name: Detect merged release branch for current commit
         id: release-pr

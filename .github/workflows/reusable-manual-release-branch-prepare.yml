@@ -301,7 +301,7 @@ jobs:
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
       mode: ref
-      action_ref: ${{ github.sha }}
+      action_ref: release/${{ needs.prepare.outputs.version }}
       image_tag: ''
     secrets: inherit
 
@@ -372,7 +372,28 @@ jobs:
     secrets: inherit
 
   create-release-pull-request:
-    if: ${{ !inputs.build-and-push-only }}
+    if: ${{ !inputs.build-and-push-only && inputs.profile != 'actions' }}
+    needs: [prepare]
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Create release pull request
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          source_branch: release/${{ needs.prepare.outputs.version }}
+          target_branch: ${{ github.event.repository.default_branch }}
+          title: "chore(release): prepare ${{ needs.prepare.outputs.version }}"
+          body: |
+            Automated release preparation.
+
+            - Version: `${{ needs.prepare.outputs.version }}`
+            - Branch: `release/${{ needs.prepare.outputs.version }}`
+            - Docker artifacts: release-candidate tags (`-rc`)
+          allow_no_diff: true
+          assignee: ${{ github.actor }}
+
+  create-release-pull-request-after-e2e:
+    if: ${{ !inputs.build-and-push-only && inputs.profile == 'actions' && always() && !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
     needs:
       - prepare
       - e2e-action-commit-push

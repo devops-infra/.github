@@ -271,23 +271,6 @@ jobs:
             git push -u origin "${BRANCH}"
           fi
 
-      - name: Create release pull request
-        if: ${{ !inputs.build-and-push-only }}
-        uses: devops-infra/action-pull-request@v1
-        with:
-          github_token: ${{ github.token }}
-          source_branch: release/${{ steps.version.outputs.REL_VERSION }}
-          target_branch: ${{ github.event.repository.default_branch }}
-          title: "chore(release): prepare ${{ steps.version.outputs.REL_VERSION }}"
-          body: |
-            Automated release preparation.
-
-            - Version: `${{ steps.version.outputs.REL_VERSION }}`
-            - Branch: `release/${{ steps.version.outputs.REL_VERSION }}`
-            - Docker artifacts: release-candidate tags (`-rc`)
-          allow_no_diff: true
-          assignee: ${{ github.actor }}
-
       - name: Export version output
         id: export-version
         run: |
@@ -318,6 +301,7 @@ jobs:
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
       mode: ref
+      action_ref: ${{ github.sha }}
       image_tag: ''
     secrets: inherit
 
@@ -386,3 +370,33 @@ jobs:
       mode: ref
       image_tag: ''
     secrets: inherit
+
+  create-release-pull-request:
+    if: ${{ !inputs.build-and-push-only }}
+    needs:
+      - prepare
+      - e2e-action-commit-push
+      - e2e-action-pull-request
+      - e2e-action-container-structure-test
+      - e2e-action-format-hcl
+      - e2e-action-tflint
+      - e2e-action-terraform-validate
+      - e2e-action-terraform-copy-vars
+      - e2e-action-template-action
+    runs-on: ${{ inputs.runs-on }}
+    steps:
+      - name: Create release pull request
+        uses: devops-infra/action-pull-request@v1
+        with:
+          github_token: ${{ github.token }}
+          source_branch: release/${{ needs.prepare.outputs.version }}
+          target_branch: ${{ github.event.repository.default_branch }}
+          title: "chore(release): prepare ${{ needs.prepare.outputs.version }}"
+          body: |
+            Automated release preparation.
+
+            - Version: `${{ needs.prepare.outputs.version }}`
+            - Branch: `release/${{ needs.prepare.outputs.version }}`
+            - Docker artifacts: release-candidate tags (`-rc`)
+          allow_no_diff: true
+          assignee: ${{ github.actor }}

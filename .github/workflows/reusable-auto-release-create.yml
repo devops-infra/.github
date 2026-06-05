@@ -166,26 +166,6 @@ jobs:
           task docker:push
           task docker:push:inspect
 
-      - name: Create and push release tags
-        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true'
-        run: VERSION_OVERRIDE='${{ steps.version.outputs.REL_VERSION }}' task version:tag-release
-
-      - name: Create GitHub release
-        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true'
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.version.outputs.REL_VERSION }}
-          generate_release_notes: true
-
-      - name: Docker Hub Description
-        if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true' && (inputs.profile == 'actions' || inputs.profile == 'dockerized')
-        uses: peter-evans/dockerhub-description@v5
-        with:
-          username: ${{ vars.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
-          short-description: ${{ github.event.repository.description }}
-
       - name: Detect container structure test configs for release
         id: cst-configs-release
         if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists != 'true' && (inputs.profile == 'actions' || inputs.profile == 'dockerized')
@@ -231,16 +211,64 @@ jobs:
         if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists == 'true'
         run: echo "Release tag already exists for ${{ steps.version.outputs.REL_VERSION }}; skipping publish"
 
-  verify-release-ref-tags:
+  e2e-action-commit-push:
     if: >-
       inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-commit-push' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
     needs: [release]
+    permissions:
+      contents: write
+    uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
+    with:
+      mode: ref
+      image_tag: ''
+    secrets: inherit
+
+  publish-action-commit-push-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-commit-push' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-commit-push]
     runs-on: ${{ inputs.runs-on }}
     permissions:
-      contents: read
+      contents: write
+      packages: write
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
       - name: Verify patch, minor, and major refs
         env:
           REPO: ${{ github.repository }}
@@ -289,28 +317,13 @@ jobs:
             exit 1;
           }
 
-  e2e-action-commit-push:
-    if: >-
-      inputs.profile == 'actions' &&
-      github.event.repository.name == 'action-commit-push' &&
-      needs.release.outputs.should_release == 'true' &&
-      needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
-    permissions:
-      contents: write
-    uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
-    with:
-      mode: ref
-      image_tag: ''
-    secrets: inherit
-
   e2e-action-pull-request:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'action-pull-request' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: write
       pull-requests: write
@@ -318,8 +331,100 @@ jobs:
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
       mode: ref
+      action_ref: ${{ github.sha }}
       image_tag: ''
     secrets: inherit
+
+  publish-action-pull-request-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-pull-request' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-pull-request]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
 
   e2e-action-container-structure-test:
     if: >-
@@ -327,7 +432,7 @@ jobs:
       github.event.repository.name == 'action-container-structure-test' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-container-structure-test.yml@master
@@ -336,13 +441,104 @@ jobs:
       image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
+  publish-action-container-structure-test-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-container-structure-test' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-container-structure-test]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-format-hcl:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'action-format-hcl' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-format-hcl.yml@master
@@ -351,13 +547,104 @@ jobs:
       image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
+  publish-action-format-hcl-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-format-hcl' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-format-hcl]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-tflint:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'action-tflint' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-tflint.yml@master
@@ -366,13 +653,104 @@ jobs:
       image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
+  publish-action-tflint-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-tflint' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-tflint]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-terraform-validate:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'action-terraform-validate' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-validate.yml@master
@@ -381,13 +759,104 @@ jobs:
       image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
+  publish-action-terraform-validate-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-terraform-validate' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-terraform-validate]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-terraform-copy-vars:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'action-terraform-copy-vars' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-terraform-copy-vars.yml@master
@@ -396,13 +865,104 @@ jobs:
       image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
+  publish-action-terraform-copy-vars-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'action-terraform-copy-vars' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-terraform-copy-vars]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-template-action:
     if: >-
       inputs.profile == 'actions' &&
       github.event.repository.name == 'template-action' &&
       needs.release.outputs.should_release == 'true' &&
       needs.release.outputs.tag_exists != 'true'
-    needs: [release, verify-release-ref-tags]
+    needs: [release]
     permissions:
       contents: read
     uses: devops-infra/triglav/.github/workflows/e2e-action-template-action.yml@master
@@ -410,3 +970,94 @@ jobs:
       mode: ref
       image_tag: ''
     secrets: inherit
+
+  publish-template-action-release:
+    if: >-
+      inputs.profile == 'actions' &&
+      github.event.repository.name == 'template-action' &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release, e2e-action-template-action]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Docker Hub Description
+        if: inputs.profile == 'actions' || inputs.profile == 'dockerized'
+        uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+          repository: ${{ vars.DOCKER_ORG_NAME }}/${{ github.event.repository.name }}
+          short-description: ${{ github.event.repository.description }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }

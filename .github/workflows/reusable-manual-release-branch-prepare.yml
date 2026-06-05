@@ -376,6 +376,11 @@ jobs:
     needs: [prepare]
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Create release pull request
         uses: devops-infra/action-pull-request@v1
         with:
@@ -406,6 +411,11 @@ jobs:
       - e2e-action-template-action
     runs-on: ${{ inputs.runs-on }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
       - name: Create release pull request
         uses: devops-infra/action-pull-request@v1
         with:

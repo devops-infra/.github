@@ -211,6 +211,7 @@ jobs:
     with:
       mode: ref
       image_tag: ''
+      action_ref: ${{ github.sha }}
     secrets: inherit
 
   e2e-action-pull-request:

@@ -211,6 +211,86 @@ jobs:
         if: steps.release-pr.outputs.should_release == 'true' && steps.tag-exists.outputs.exists == 'true'
         run: echo "Release tag already exists for ${{ steps.version.outputs.REL_VERSION }}; skipping publish"
 
+  publish-generic-release:
+    if: >-
+      (inputs.profile == 'other' || inputs.profile == 'static') &&
+      needs.release.outputs.should_release == 'true' &&
+      needs.release.outputs.tag_exists != 'true'
+    needs: [release]
+    runs-on: ${{ inputs.runs-on }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Install Task
+        uses: go-task/setup-task@v2
+        with:
+          version: 3.x
+
+      - name: Create and push release tags
+        run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ needs.release.outputs.release_version }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Verify patch, minor, and major refs
+        env:
+          REPO: ${{ github.repository }}
+          patch_ref_input: ${{ needs.release.outputs.release_version }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://github.com/${REPO}.git"
+          patch_ref="${patch_ref_input}"
+          version_no_v="${patch_ref#v}"
+          major="${version_no_v%%.*}"
+          rest="${version_no_v#*.}"
+          minor="${rest%%.*}"
+          minor_ref="v${major}.${minor}"
+          major_ref="v${major}"
+
+          resolve_ref_sha() {
+            local ref="$1"
+            local sha=""
+            sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}^{}" | cut -f1)"
+            if [ -z "${sha}" ]; then
+              sha="$(git ls-remote --tags "${repo_url}" "refs/tags/${ref}" | cut -f1)"
+            fi
+            echo "${sha}"
+          }
+
+          patch_sha="$(resolve_ref_sha "${patch_ref}")"
+          minor_sha="$(resolve_ref_sha "${minor_ref}")"
+          major_sha="$(resolve_ref_sha "${major_ref}")"
+
+          test -n "${patch_sha}" || { echo "Missing patch ref: ${patch_ref}"; exit 1; }
+          test -n "${minor_sha}" || { echo "Missing minor ref: ${minor_ref}"; exit 1; }
+          test -n "${major_sha}" || { echo "Missing major ref: ${major_ref}"; exit 1; }
+
+          test "${minor_sha}" = "${patch_sha}" || {
+            echo "Minor ref ${minor_ref} does not match patch ref ${patch_ref}";
+            echo "minor_sha=${minor_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
+          test "${major_sha}" = "${patch_sha}" || {
+            echo "Major ref ${major_ref} does not match patch ref ${patch_ref}";
+            echo "major_sha=${major_sha}";
+            echo "patch_sha=${patch_sha}";
+            exit 1;
+          }
+
   e2e-action-commit-push:
     if: >-
       inputs.profile == 'actions' &&

@@ -293,6 +293,7 @@ jobs:
     with:
       mode: ref
       image_tag: ''
+      action_ref: release/${{ needs.prepare.outputs.version }}
     secrets: inherit
 
   e2e-action-pull-request:

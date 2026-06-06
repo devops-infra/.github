@@ -1,4 +1,4 @@
-name: (Automatic) Deploy Pages
+name: (A) Deploy Pages
 
 on:
   push:

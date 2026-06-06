@@ -1,4 +1,4 @@
-name: (Reusable) - (Cron) Dependency Update
+name: (R)(C) Dependency Update
 
 on:
   workflow_call:
@@ -29,6 +29,8 @@ on:
         default: 60
     secrets:
       DOCKER_TOKEN:
+        required: false
+      SSH_SIGNING_KEY:
         required: false
 
 permissions:
@@ -271,6 +273,8 @@ jobs:
           github_token: ${{ github.token }}
           target_branch: chore/weekly-health-${{ github.run_id }}
           commit_message: "chore(deps): weekly dependency and health updates"
+          signing_mode: ssh
+          signing_key: ${{ secrets.SSH_SIGNING_KEY }}
 
       - name: Export report body
         id: report-body

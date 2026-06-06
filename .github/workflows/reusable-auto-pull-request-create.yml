@@ -1,4 +1,4 @@
-name: (Reusable) - (Automatic) Pull Request Create
+name: (R)(A) Pull Request Create
 
 on:
   workflow_call:

@@ -1,4 +1,4 @@
-name: (Reusable) - (Manual) Release Branch Prepare
+name: (R)(M) Release Branch Prepare
 
 on:
   workflow_call:
@@ -38,6 +38,8 @@ on:
         value: ${{ jobs.prepare.outputs.version }}
     secrets:
       DOCKER_TOKEN:
+        required: false
+      SSH_SIGNING_KEY:
         required: false
 
 permissions:
@@ -238,6 +240,8 @@ jobs:
           allow_empty_commit: true
           force_with_lease: true
           target_branch: release/${{ steps.version.outputs.REL_VERSION }}
+          signing_mode: ssh
+          signing_key: ${{ secrets.SSH_SIGNING_KEY }}
 
       - name: Commit and push release branch (self fallback)
         if: ${{ !inputs.build-and-push-only && contains(fromJSON('["devops-infra/action-commit-push","devops-infra/.github"]'), github.repository) }}

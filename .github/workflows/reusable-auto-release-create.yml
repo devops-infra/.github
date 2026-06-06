@@ -232,6 +232,9 @@ jobs:
         with:
           version: 3.x
 
+      - name: Set git config
+        run: task git:set-config
+
       - name: Create and push release tags
         run: VERSION_OVERRIDE='${{ needs.release.outputs.release_version }}' task version:tag-release
 

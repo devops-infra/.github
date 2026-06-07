@@ -204,27 +204,26 @@ jobs:
 
   e2e-action-commit-push:
     if: inputs.profile == 'actions' && github.event.repository.name == 'action-commit-push'
-    needs: [pull-request]
+    needs: [docker]
     permissions:
       contents: write
     uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
     with:
-      mode: ref
-      image_tag: ''
-      action_ref: ${{ github.sha }}
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
     secrets: inherit
 
   e2e-action-pull-request:
     if: inputs.profile == 'actions' && github.event.repository.name == 'action-pull-request'
-    needs: [pull-request]
+    needs: [docker]
     permissions:
       contents: write
       pull-requests: write
       issues: write
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
-      mode: ref
-      image_tag: ''
+      mode: image
+      image_tag: ${{ needs.docker.outputs.image_tag }}
     secrets: inherit
 
   e2e-action-container-structure-test:

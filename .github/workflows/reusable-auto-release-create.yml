@@ -305,9 +305,8 @@ jobs:
       contents: write
     uses: devops-infra/triglav/.github/workflows/e2e-action-commit-push.yml@master
     with:
-      mode: ref
-      image_tag: ''
-      action_ref: ${{ github.sha }}
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
   publish-action-commit-push-release:
@@ -417,9 +416,8 @@ jobs:
       issues: write
     uses: devops-infra/triglav/.github/workflows/e2e-action-pull-request.yml@master
     with:
-      mode: ref
-      action_ref: ${{ github.sha }}
-      image_tag: ''
+      mode: image
+      image_tag: ${{ needs.release.outputs.release_version }}
     secrets: inherit
 
   publish-action-pull-request-release:

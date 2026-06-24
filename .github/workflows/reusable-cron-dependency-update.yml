@@ -143,6 +143,7 @@ jobs:
         env:
           DOCKER_TOKEN: ${{ secrets.DOCKER_TOKEN }}
           GITHUB_TOKEN: ${{ github.token }}
+          VERSION_SUFFIX: '-test'
         run: |
           task docker:cmds
           task docker:push

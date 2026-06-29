@@ -18,8 +18,9 @@ Reusable callers exist for four profiles:
 Each in-scope repository should expose these caller workflows in `.github/workflows/`:
 
 1. `auto-pull-request-create.yml`
-2. `cron-dependency-update.yml`
-3. `manual-release-create.yml`
+2. `auto-release-create.yml`
+3. `cron-dependency-update.yml`
+4. `manual-release-branch-prepare.yml`
 
 Static profile repositories should also expose:
 
@@ -52,10 +53,13 @@ The workflow creates or updates one repository issue with findings and auto-clos
 
 ## Manual release behavior
 
-`manual-release-create` supports two modes:
+`manual-release-branch-prepare` is the single manual release entry point and supports two modes:
 
 - bump or set version (and open release PR)
 - build/push only without version bump (`build_only: true`)
+
+`auto-release-create` is the automatic finalization step. It publishes the
+release after the prepared `release/*` branch is merged.
 
 ## Required action usage
 

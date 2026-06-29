@@ -91,12 +91,9 @@ tasks:
         fi
 
   dependency:update:
-    desc: Check main dependency not covered by dependabot
+    desc: Update managed dependency pins for this profile
     cmds:
-      - |
-        echo "ℹ️ No dedicated dependency updater configured for this repository profile."
-        echo "ℹ️ Dependabot handles GitHub Actions and package metadata updates."
-        echo "ℹ️ Docker builds still validate runtime dependencies during CI."
+      - task: packages:update
 
   version:set:
     desc: Validate version

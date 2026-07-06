@@ -70,6 +70,71 @@ tasks:
           exit $rc
         fi
 
+  dependency:update:
+    desc: Update repository dependencies not covered by Dependabot
+    cmds:
+      - task: alpine:update
+  alpine:update:
+    desc: Update Alpine base image references and VERSION_ID test expectations
+    cmds:
+      - |
+        set -eu
+        if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+          echo "INFO: Not in a git repository; nothing to update"
+          exit 0
+        fi
+
+        mkdir -p .tmp
+        tracked_files=".tmp/alpine-update-files.txt"
+        relevant_files=".tmp/alpine-update-relevant.txt"
+        git ls-files > "$tracked_files"
+        grep -E '(^|/)(Dockerfile[^/]*|[^/]+\.sh|\.github/workflows/.*\.ya?ml|tests/.*\.ya?ml)$' "$tracked_files" > "$relevant_files" || true
+
+        if [ ! -s "$relevant_files" ]; then
+          echo "INFO: No tracked Alpine-related source files found; nothing to update"
+          exit 0
+        fi
+
+        latest_feed="$(curl -fsSL https://dl-cdn.alpinelinux.org/alpine/latest-stable/releases/x86_64/latest-releases.yaml)"
+        latest_alpine="$(printf '%s\n' "$latest_feed" | awk '/^  version:/ {print $2}' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)"
+        if [ -z "$latest_alpine" ]; then
+          echo "ERROR: Could not resolve latest Alpine release"
+          exit 1
+        fi
+        latest_regex="$(printf '%s' "$latest_alpine" | sed 's/\./\\./g')"
+
+        found_refs=0
+        while IFS= read -r file; do
+          [ -n "$file" ] || continue
+          if grep -Eq 'alpine:[0-9]+\.[0-9]+\.[0-9]+|VERSION_ID=[0-9]+\\\.[0-9]+(\\\.[0-9]+)?' "$file"; then
+            found_refs=1
+            break
+          fi
+        done < "$relevant_files"
+
+        if [ "$found_refs" -eq 0 ]; then
+          echo "INFO: No Alpine version references found in tracked source files; nothing to update"
+          exit 0
+        fi
+
+        updated=0
+        while IFS= read -r file; do
+          [ -n "$file" ] || continue
+          before_file=".tmp/alpine-update-before"
+          cp "$file" "$before_file"
+          perl -0pi -e 's/alpine:\d+\.\d+\.\d+/alpine:'"$latest_alpine"'/g; s/VERSION_ID=\d+\\\.\d+(?:\\\.\d+)?/VERSION_ID='"$latest_regex"'/g' "$file"
+          if ! cmp -s "$file" "$before_file"; then
+            echo "UPDATE: Alpine references in $file -> $latest_alpine"
+            updated=1
+          fi
+        done < "$relevant_files"
+        rm -f .tmp/alpine-update-before
+
+        if [ "$updated" -eq 0 ]; then
+          echo "INFO: Alpine references already up to date"
+        fi
+
+
   git:get-pr-template:
     desc: Get pull request template
     cmds:

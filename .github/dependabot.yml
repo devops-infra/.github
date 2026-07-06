@@ -4,7 +4,7 @@ updates:
     directory: "/.github/workflows"
     schedule:
       interval: weekly
-      day: monday
+      day: wednesday
       time: "05:00"
       timezone: "UTC"
     groups:
@@ -16,7 +16,7 @@ updates:
     directory: "/templates/actions/workflows"
     schedule:
       interval: weekly
-      day: monday
+      day: wednesday
       time: "05:00"
       timezone: "UTC"
     groups:
@@ -28,7 +28,7 @@ updates:
     directory: "/templates/dockerized/workflows"
     schedule:
       interval: weekly
-      day: monday
+      day: wednesday
       time: "05:00"
       timezone: "UTC"
     groups:
@@ -40,7 +40,7 @@ updates:
     directory: "/templates/other/workflows"
     schedule:
       interval: weekly
-      day: monday
+      day: wednesday
       time: "05:00"
       timezone: "UTC"
     groups:
@@ -52,7 +52,7 @@ updates:
     directory: "/templates/static/workflows"
     schedule:
       interval: weekly
-      day: monday
+      day: wednesday
       time: "05:00"
       timezone: "UTC"
     groups:

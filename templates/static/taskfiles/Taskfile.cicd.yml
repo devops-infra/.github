@@ -41,12 +41,9 @@ tasks:
       - task scripts:lint:yamllint
 
   dependency:update:
-    desc: Check main dependency not covered by dependabot
+    desc: Update repository dependencies not covered by Dependabot
     cmds:
-      - |
-        echo "ℹ️ No dedicated dependency updater configured for this repository profile."
-        echo "ℹ️ Dependabot handles GitHub Actions and package metadata updates."
-        echo "ℹ️ Keep this task as a safe no-op until a repo-specific dependency updater is defined."
+      - task: scripts:dependency:update
 
   version:set:
     desc: Validate version

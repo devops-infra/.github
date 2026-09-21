@@ -30,6 +30,8 @@ on:
     secrets:
       DOCKER_TOKEN:
         required: false
+      PUSH_TOKEN:
+        required: true
       SSH_SIGNING_KEY:
         required: false
 
@@ -271,7 +273,7 @@ jobs:
         if: steps.changes.outputs.has_changes == 'true'
         uses: devops-infra/action-commit-push@v1
         with:
-          github_token: ${{ github.token }}
+          github_token: ${{ secrets.PUSH_TOKEN }}
           target_branch: chore/weekly-health-${{ github.run_id }}
           commit_message: "chore(deps): weekly dependency and health updates"
           signing_mode: ssh
